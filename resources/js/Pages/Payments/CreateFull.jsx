@@ -3,12 +3,6 @@ import { Head, useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "../../Layouts/AuthenticatedLayout";
 
 export default function CreateFull({ offerPrice, purchaseRequest }) {
-    const dpAmount = offerPrice.dp_amount;
-
-    // const remainingAmount = dpPaid
-    //     ? offerPrice.total_price - dpAmount
-    //     : offerPrice.total_price;
-
     const { data, setData, post } = useForm({
         offerprice_id: offerPrice.id, // Sesuai dengan field di Payment
         amount: offerPrice.total_price,
