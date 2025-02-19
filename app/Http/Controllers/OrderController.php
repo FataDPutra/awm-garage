@@ -26,7 +26,7 @@ class OrderController extends Controller
     // Menampilkan detail order
     public function show($order_id)
     {
-        $order = Order::with('offerPrice.purchaseRequest.service', 'offerPrice.purchaseRequest.user','complains' )
+        $order = Order::with('offerPrice.purchaseRequest.service', 'offerPrice.purchaseRequest.user','offerPrice.payments','complains' )
             ->where('order_id', $order_id)
             ->firstOrFail();
         // dd($order);
@@ -258,24 +258,26 @@ public function confirmShipmentCustomer(Request $request, $order_id)
         
     // }
 
-    public function confirmCustomerOrder(Request $request, $order_id)
-    {
+public function confirmCustomerOrder(Request $request, $order_id)
+{
     $request->validate([
         'customer_confirmation' => 'required|in:approved,rejected',
         'customer_feedback' => 'nullable|string|max:500',
     ]);
 
-    $order = Order::where('order_id', $order_id)->firstOrFail();
+    $order = Order::where('order_id', $order_id)->with('offerPrice.payments')->firstOrFail();
 
     // Simpan feedback ke tabel order_complains
     $order->complains()->create([
-        // 'customer_confirmation' => $request->customer_confirmation,
         'customer_feedback' => $request->customer_feedback,
     ]);
 
     if ($request->customer_confirmation === 'approved') {
+        // Cek apakah ada pembayaran yang sudah "paid"
+        $hasPaidPayment = $order->offerPrice->payments()->where('payment_status', 'paid')->exists();
+
         $order->update([
-            'status' => 'waiting_for_payment',
+            'status' => $hasPaidPayment ? 'waiting_for_shipment' : 'waiting_for_payment',
             'customer_confirmation' => 'approved'
         ]);
     } else {
@@ -284,6 +286,8 @@ public function confirmShipmentCustomer(Request $request, $order_id)
             'customer_confirmation' => 'rejected'
         ]);
     }
+
     return redirect()->route('orders-customer.show', $order_id)->with('success', 'Konfirmasi berhasil disimpan.');
 }
+
 }

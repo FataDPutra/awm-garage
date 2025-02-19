@@ -272,11 +272,12 @@ export default function CustomerShow({ order }) {
                     )}
 
                 {/* Jika pelanggan setuju, munculkan tombol bayar */}
-                {order.customer_confirmation === "approved" && (
-                    <button className="mt-4 bg-green-500 text-white px-4 py-2 rounded">
-                        Bayar Sisa Pembayaran
-                    </button>
-                )}
+                {order.customer_confirmation === "approved" &&
+                    order.status === "waiting_for_payment" && (
+                        <button className="mt-4 bg-green-500 text-white px-4 py-2 rounded">
+                            Bayar Sisa Pembayaran
+                        </button>
+                    )}
 
                 {/* Jika pelanggan tidak setuju, tampilkan alasan */}
                 {order.customer_confirmation === "rejected" &&

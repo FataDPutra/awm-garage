@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 
 class OfferPrice extends Model
 {
@@ -25,8 +27,9 @@ class OfferPrice extends Model
         return $this->hasOne(Order::class, 'offerprice_id');
     }
 
-    public function payments(): HasOne
-    {
-        return $this->hasOne(Payment::class, 'offerprice_id');
-    }
+
+    public function payments(): HasMany
+{
+    return $this->hasMany(Payment::class, 'offerprice_id');
+}
 }
