@@ -83,6 +83,17 @@ public function storeFull(Request $request)
 
     $offerPrice = OfferPrice::with('purchaseRequest')->findOrFail($request->offerprice_id);
 
+    $dpAmount = $offerPrice->dp_amount;
+
+    // 🔹 Cek apakah DP sudah dibayarkan
+    $dpPaid = Payment::where('offerprice_id', $offerPrice->id)
+                     ->where('payment_type', 'dp')
+                     ->where('payment_status', 'success')
+                     ->exists();
+
+    $remainingAmount = $dpPaid ? ($offerPrice->total_price - $dpAmount) : $offerPrice->total_price;
+
+
     // 🔹 Simulasi API Payment Gateway
     $transaction_id = 'TXN-' . strtoupper(uniqid());
 

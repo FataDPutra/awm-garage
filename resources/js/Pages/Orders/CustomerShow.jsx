@@ -1,4 +1,5 @@
 import { Link, useForm } from "@inertiajs/react";
+import { Inertia } from "@inertiajs/inertia";
 
 export default function CustomerShow({ order }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -7,6 +8,10 @@ export default function CustomerShow({ order }) {
         customer_confirmation: "",
         customer_feedback: "",
     });
+
+    const handleFull = () => {
+        Inertia.get(`/payments/${order.offer_price.id}/payment-full`);
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -274,8 +279,11 @@ export default function CustomerShow({ order }) {
                 {/* Jika pelanggan setuju, munculkan tombol bayar */}
                 {order.customer_confirmation === "approved" &&
                     order.status === "waiting_for_payment" && (
-                        <button className="mt-4 bg-green-500 text-white px-4 py-2 rounded">
-                            Bayar Sisa Pembayaran
+                        <button
+                            onClick={handleFull}
+                            className="bg-blue-500 text-white px-4 py-2 rounded"
+                        >
+                            Bayar Full
                         </button>
                     )}
 
