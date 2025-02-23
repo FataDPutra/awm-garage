@@ -10,8 +10,12 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\OfferPriceController;
+use App\Http\Controllers\LocationController;
+
+
 
 // Halaman utama
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -21,8 +25,12 @@ Route::get('/', function () {
     ]);
 });
 
+// Route::get('/locations', [LocationController::class, 'search']);
+
 // Dashboard hanya untuk user yang sudah login
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/locations', [LocationController::class, 'search'])->name('locations.search');
+
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');

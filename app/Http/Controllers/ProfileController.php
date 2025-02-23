@@ -16,13 +16,15 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): Response
-    {
-        return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
-        ]);
-    }
+public function edit(Request $request): Response
+{
+    return Inertia::render('Profile/Edit', [
+        'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+        'status' => session('status'),
+        'user' => $request->user(), // Tambahkan user agar tersedia di frontend
+    ]);
+}
+
 
     /**
      * Update the user's profile information.
@@ -48,8 +50,14 @@ class ProfileController extends Controller
             'username' => 'required|string|max:50|unique:users,username,' . $user->id,
             'full_name' => 'nullable|string|max:100',
             'email' => 'nullable|string|email|max:255|unique:users,email,' . $user->id,
-            'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'province_name' => 'nullable|string',
+            'city_name' => 'nullable|string',
+            'district_name' => 'nullable|string',
+            'subdistrict_name' => 'nullable|string',
+            'zip_code' => 'nullable|string',
+            'address_details' => 'nullable|string',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'password' => 'nullable|min:6|confirmed',
@@ -59,8 +67,14 @@ class ProfileController extends Controller
             'username' => $request->username,
             'full_name' => $request->full_name,
             'email' => $request->email,
-            'address' => $request->address,
             'phone' => $request->phone,
+            'address' => $request->address,
+            'province_name' => $request->province_name,
+            'city_name' => $request->city_name,
+            'district_name' => $request->district_name,
+            'subdistrict_name' => $request->subdistrict_name,
+            'zip_code' => $request->zip_code,
+            'address_details' => $request->address_details,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'password' => $request->password ? Hash::make($request->password) : $user->password,

@@ -61,15 +61,20 @@ class PaymentController extends Controller
     }
 
     // 📌 Form untuk pembayaran sisa
-    public function createFull($offerprice_id)
-    {
-        $offerPrice = OfferPrice::with('purchaseRequest')->findOrFail($offerprice_id);
+ public function createFull($offerPriceId)
+{
+    $offerPrice = OfferPrice::findOrFail($offerPriceId);
+    $purchaseRequest = $offerPrice->purchaseRequest;
+    $dpPayment = Payment::where('offerprice_id', $offerPriceId)
+        ->where('payment_type', 'dp')
+        ->first();
 
-        return Inertia::render('Payments/CreateFull', [
-            'offerPrice' => $offerPrice,
-            'purchaseRequest' => $offerPrice->purchaseRequest
-        ]);
-    }
+    return inertia('Payments/CreateFull', [
+        'offerPrice' => $offerPrice,
+        'purchaseRequest' => $purchaseRequest,
+        'dpPayment' => $dpPayment,
+    ]);
+}
 
 
     // 📌 Menyimpan pembayaran penuh

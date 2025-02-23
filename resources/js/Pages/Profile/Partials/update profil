@@ -1,0 +1,178 @@
+import InputError from "@/Components/InputError";
+import InputLabel from "@/Components/InputLabel";
+import PrimaryButton from "@/Components/PrimaryButton";
+import TextInput from "@/Components/TextInput";
+import { Transition } from "@headlessui/react";
+import { Link, useForm, usePage } from "@inertiajs/react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+export default function UpdateProfileInformation({
+    mustVerifyEmail,
+    status,
+    className = "",
+}) {
+    const user = usePage().props.auth.user;
+
+    const { data, setData, patch, errors, processing, recentlySuccessful } =
+        useForm({
+            username: user.username || "",
+            email: user.email || "",
+            full_name: user.full_name || "",
+            phone: user.phone || "",
+            address: user.address || "",
+            latitude: user.latitude || "",
+            longitude: user.longitude || "",
+            province_name: user.province_name || "",
+            city_name: user.city_name || "",
+            district_name: user.district_name || "",
+            subdistrict_name: user.subdistrict_name || "",
+            zip_code: user.zip_code || "",
+        });
+
+    const [search, setSearch] = useState("");
+    const [locations, setLocations] = useState([]);
+
+    useEffect(() => {
+        if (search && search.length > 2) {
+            // Pastikan search tidak null
+            axios.get(`/locations?search=${search}`).then((response) => {
+                setLocations(response.data.data);
+            });
+        } else {
+            setLocations([]);
+        }
+    }, [search]);
+
+    const handleLocationSelect = (location) => {
+        setData({
+            ...data,
+            province_name: location.province_name,
+            city_name: location.city_name,
+            district_name: location.district_name,
+            subdistrict_name: location.subdistrict_name,
+            zip_code: location.zip_code,
+            address: location.label,
+        });
+        setSearch(location.label);
+        setLocations([]);
+    };
+
+    const submit = (e) => {
+        e.preventDefault();
+        patch(route("profile.update"));
+    };
+
+    return (
+        <section className={className}>
+            <header>
+                <h2 className="text-lg font-medium text-gray-900">
+                    Profile Information
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                    Update your account's profile information.
+                </p>
+            </header>
+
+            <form onSubmit={submit} className="mt-6 space-y-6">
+                {/* Search Location */}
+                <div>
+                    <InputLabel htmlFor="search" value="Search Location" />
+                    <TextInput
+                        id="search"
+                        className="mt-1 block w-full"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                    {Array.isArray(locations) && locations.length > 0 && (
+                        <ul className="mt-2 border border-gray-300 rounded-md shadow-md bg-white">
+                            {locations.map((loc) => (
+                                <li
+                                    key={loc.id}
+                                    className="p-2 cursor-pointer hover:bg-gray-100"
+                                    onClick={() => handleLocationSelect(loc)}
+                                >
+                                    {loc.label}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                {/* Display Selected Location */}
+                <div>
+                    <InputLabel htmlFor="address" value="Selected Address" />
+                    <TextInput
+                        id="address"
+                        className="mt-1 block w-full"
+                        value={data.address}
+                        disabled
+                    />
+                </div>
+
+                {/* Province */}
+                <div>
+                    <InputLabel htmlFor="province_name" value="Province" />
+                    <TextInput
+                        id="province_name"
+                        className="mt-1 block w-full"
+                        value={data.province_name}
+                        disabled
+                    />
+                </div>
+
+                {/* City */}
+                <div>
+                    <InputLabel htmlFor="city_name" value="City" />
+                    <TextInput
+                        id="city_name"
+                        className="mt-1 block w-full"
+                        value={data.city_name}
+                        disabled
+                    />
+                </div>
+
+                {/* District */}
+                <div>
+                    <InputLabel htmlFor="district_name" value="District" />
+                    <TextInput
+                        id="district_name"
+                        className="mt-1 block w-full"
+                        value={data.district_name}
+                        disabled
+                    />
+                </div>
+
+                {/* Subdistrict */}
+                <div>
+                    <InputLabel
+                        htmlFor="subdistrict_name"
+                        value="Subdistrict"
+                    />
+                    <TextInput
+                        id="subdistrict_name"
+                        className="mt-1 block w-full"
+                        value={data.subdistrict_name}
+                        disabled
+                    />
+                </div>
+
+                {/* ZIP Code */}
+                <div>
+                    <InputLabel htmlFor="zip_code" value="ZIP Code" />
+                    <TextInput
+                        id="zip_code"
+                        className="mt-1 block w-full"
+                        value={data.zip_code}
+                        disabled
+                    />
+                </div>
+
+                {/* Submit */}
+                <div className="flex items-center gap-4">
+                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                </div>
+            </form>
+        </section>
+    );
+}

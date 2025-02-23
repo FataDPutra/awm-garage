@@ -2,10 +2,12 @@ import React from "react";
 import { Head, useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "../../Layouts/AuthenticatedLayout";
 
-export default function CreateFull({ offerPrice, purchaseRequest }) {
+export default function CreateFull({ offerPrice, purchaseRequest, dpPayment }) {
     const { data, setData, post } = useForm({
-        offerprice_id: offerPrice.id, // Sesuai dengan field di Payment
-        amount: offerPrice.total_price,
+        offerprice_id: offerPrice.id,
+        amount: dpPayment
+            ? offerPrice.total_price - offerPrice.dp_amount
+            : offerPrice.total_price,
         payment_method: "",
     });
 
@@ -43,14 +45,6 @@ export default function CreateFull({ offerPrice, purchaseRequest }) {
                     <p>
                         <strong>Status:</strong> {purchaseRequest.status}
                     </p>
-                    {/* {purchaseRequest.photo_path && (
-                        <img
-                            src={`/storage/${purchaseRequest.photo_path}`}
-                            alt="Foto Barang"
-                            className="mt-2 w-32 h-32 object-cover rounded"
-                        />
-                    )} */}
-
                     {purchaseRequest.photo_path &&
                         (Array.isArray(purchaseRequest.photo_path) ? (
                             purchaseRequest.photo_path.map((photo, index) => (
@@ -59,7 +53,7 @@ export default function CreateFull({ offerPrice, purchaseRequest }) {
                                         src={`/storage/${photo.replace(
                                             /\\/g,
                                             ""
-                                        )}`} // Remove any backslashes
+                                        )}`}
                                         alt={`Purchase Request ${index}`}
                                         className="w-16 h-16 object-cover rounded border"
                                     />
@@ -71,7 +65,7 @@ export default function CreateFull({ offerPrice, purchaseRequest }) {
                                     src={`/storage/${purchaseRequest.photo_path.replace(
                                         /\\/g,
                                         ""
-                                    )}`} // Remove any backslashes
+                                    )}`}
                                     alt="Purchase Request"
                                     className="w-full max-w-md rounded shadow-md"
                                 />
@@ -89,15 +83,23 @@ export default function CreateFull({ offerPrice, purchaseRequest }) {
                         {offerPrice.service_price}
                     </p>
                     <p>
-                        <strong>Biaya yang Harus Dibayar:</strong> Rp{" "}
+                        <strong>DP yang Sudah Dibayar:</strong> Rp{" "}
+                        {dpPayment ? offerPrice.dp_amount : 0}
+                    </p>
+                    <p>
+                        <strong>Total Biaya:</strong> Rp{" "}
                         {offerPrice.total_price}
+                    </p>
+                    <p>
+                        <strong>Biaya yang Harus Dibayar:</strong> Rp{" "}
+                        {data.amount}
                     </p>
                     <p>
                         <strong>Status:</strong> {offerPrice.status}
                     </p>
                 </div>
 
-                {/* 🔹 Form Pembayaran DP */}
+                {/* 🔹 Form Pembayaran Full */}
                 <form
                     onSubmit={submit}
                     className="mt-4 bg-white p-4 shadow rounded"

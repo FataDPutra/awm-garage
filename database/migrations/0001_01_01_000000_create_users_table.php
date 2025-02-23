@@ -16,10 +16,16 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('full_name')->nullable();
             $table->string('email')->unique()->nullable();
+            $table->string('password');           
             $table->timestamp('email_verified_at')->nullable();
             $table->text('address')->nullable();
             $table->string('phone')->nullable();
-            $table->string('password');           
+            $table->string('province_name')->nullable();
+            $table->string('city_name')->nullable();
+            $table->string('district_name')->nullable();
+            $table->string('subdistrict_name')->nullable();
+            $table->string('zip_code')->nullable();
+            $table->text('address_details')->nullable();
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->enum('role', ['admin', 'customer'])->default('customer'); 

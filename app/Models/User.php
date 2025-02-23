@@ -21,10 +21,17 @@ class User extends Authenticatable
         'role',
         'email',
         'full_name',
+        'phone',
         'address',
+        'province_name',
+        'city_name',
+        'district_name',
+        'subdistrict_name',
+        'zip_code',
+        'address_details',
         'latitude',
         'longitude',
-        'phone',
+
     ];
 
     /**
@@ -44,6 +51,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'password' => 'hashed',
+        
     ];
 
     
@@ -54,5 +62,10 @@ class User extends Authenticatable
     public function orders() 
     {
         return $this->hasMany(Order::class, 'user_id');
+    }
+
+    public function purchaseRequests()
+    {
+        return $this->hasMany(PurchaseRequest::class);
     }
 }

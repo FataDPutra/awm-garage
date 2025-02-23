@@ -18,6 +18,8 @@ class PurchaseRequest extends Model
 
     protected $casts = [
         'photo_path' => 'array', // Konversi JSON ke array otomatis
+        'weight' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
