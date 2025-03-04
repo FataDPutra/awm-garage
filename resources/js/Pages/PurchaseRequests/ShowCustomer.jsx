@@ -254,6 +254,23 @@ export default function ShowCustomer() {
                                 )}
                         </div>
                     )}
+                {purchaseRequest.status === "pending" && (
+                    <div className="mt-4 flex gap-2">
+                        <button
+                            onClick={() =>
+                                Inertia.get(
+                                    route(
+                                        "purchase_requests.edit",
+                                        purchaseRequest.id
+                                    )
+                                )
+                            }
+                            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-700"
+                        >
+                            Edit Purchase Request
+                        </button>
+                    </div>
+                )}
 
                 {purchaseRequest.status === "offer_sent" &&
                     purchaseRequest.offer_price && (

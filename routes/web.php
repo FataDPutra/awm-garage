@@ -53,7 +53,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/purchase-requests/create', [PurchaseRequestController::class, 'create'])->name('purchase-requests.create');
         Route::post('/purchase-requests', [PurchaseRequestController::class, 'store'])->name('purchase_requests.store');
         Route::get('/purchase-requests/{id}', [PurchaseRequestController::class, 'show'])->name('purchase_requests.show');
-        Route::put('/purchase_requests/{id}', [PurchaseRequestController::class, 'update'])->name('purchase_requests.update');
+        Route::post('/purchase_requests/{id}', [PurchaseRequestController::class, 'update'])->name('purchase_requests.update');
+        Route::get('/purchase-requests/{id}/edit', [PurchaseRequestController::class, 'edit'])->name('purchase_requests.edit');
 
         Route::post('/purchase-requests/{id}/accept-offer', [PurchaseRequestController::class, 'acceptOffer'])->name('purchase_requests.acceptOffer');
         Route::post('/purchase-requests/{id}/reject-offer', [PurchaseRequestController::class, 'rejectOffer'])->name('purchase_requests.rejectOffer');
@@ -115,11 +116,10 @@ Route::middleware(['auth'])->group(function () {
         
         Route::post('/services', [AdditionalTypeController::class, 'store'])->name('additional-types.store');
 
-
-
         Route::get('/purchaserequests', [PurchaseRequestController::class, 'adminIndex'])->name('admin.purchaserequests.index');
         Route::get('/purchaserequests/show/{id}', [PurchaseRequestController::class, 'showAdmin'])->name('admin.purchaserequests.show');
         Route::post('/purchaserequests/{id}/offer', [PurchaseRequestController::class, 'storeOfferPrice'])->name('admin.purchaserequests.offer');
+        Route::put('/admin/purchase-requests/{id}/update-offer', [PurchaseRequestController::class, 'updateOfferPrice'])->name('admin.purchaserequests.update_offer');
     });
     // [CHANGED] Menambahkan rute untuk calculate shipping yang sebelumnya hilang
     Route::post('/calculate-shipping', [PurchaseRequestController::class, 'calculateShippingCost'])->name('calculate.shipping');

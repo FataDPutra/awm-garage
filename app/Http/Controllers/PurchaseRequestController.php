@@ -344,61 +344,153 @@ class PurchaseRequestController extends Controller
         return redirect()->route('admin.purchaserequests.show', $id)->with('success', 'Offer Price sent successfully.');
     }
 
+    public function edit($id)
+    {
+    $purchaseRequest = PurchaseRequest::where('id', $id)
+        ->where('user_id', Auth::id())
+        ->where('status', 'pending')
+        ->firstOrFail();
+
+    $services = Service::with('additionals')->get();
+
+    return Inertia::render('PurchaseRequests/Edit', [
+        'purchaseRequest' => $purchaseRequest,
+        'services' => $services,
+    ]);
+    }
+
     public function update(Request $request, $id)
     {
-        $purchaseRequest = PurchaseRequest::where('id', $id)
-            ->where('user_id', Auth::id())
-            ->where('status', 'pending')
+    $user = Auth::user();
+
+    $purchaseRequest = PurchaseRequest::where('id', $id)
+        ->where('user_id', $user->id)
+        ->where('status', 'pending')
+        ->firstOrFail();
+
+    $request->validate([
+        'service_id' => 'required|exists:services,id',
+        'description' => 'required|string',
+        'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'weight' => 'required|numeric|min:0.1|max:999.99',
+        'source_use_account_address' => 'required|boolean',
+        'destination_use_account_address' => 'required|boolean',
+        'shipping_to_admin_selection' => 'required|array',
+        'shipping_to_customer_preference' => 'required|array',
+        'source_address.address' => 'required_if:source_use_account_address,false|string',
+        'source_address.province_name' => 'required_if:source_use_account_address,false|string',
+        'source_address.city_name' => 'required_if:source_use_account_address,false|string',
+        'source_address.district_name' => 'required_if:source_use_account_address,false|string',
+        'source_address.subdistrict_name' => 'required_if:source_use_account_address,false|string',
+        'source_address.zip_code' => 'required_if:source_use_account_address,false|string',
+        'source_address.address_details' => 'nullable|string',
+        'destination_address.address' => 'required_if:destination_use_account_address,false|string',
+        'destination_address.province_name' => 'required_if:destination_use_account_address,false|string',
+        'destination_address.city_name' => 'required_if:destination_use_account_address,false|string',
+        'destination_address.district_name' => 'required_if:destination_use_account_address,false|string',
+        'destination_address.subdistrict_name' => 'required_if:destination_use_account_address,false|string',
+        'destination_address.zip_code' => 'required_if:destination_use_account_address,false|string',
+        'destination_address.address_details' => 'nullable|string',
+        'additionals' => 'nullable|array',
+        'additionals.*.id' => 'required_with:additionals|exists:service_additionals,id',
+    ]);
+
+    $photoPaths = $purchaseRequest->photo_path ?? [];
+    if ($request->hasFile('photos')) {
+        if ($photoPaths) {
+            foreach ($photoPaths as $path) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+        $photoPaths = [];
+        foreach ($request->file('photos') as $photo) {
+            $photoPaths[] = $photo->store('purchase_requests', 'public');
+        }
+    }
+
+    $sourceAddress = $request->source_use_account_address
+        ? [
+            'province_name' => $user->province_name ?? '',
+            'city_name' => $user->city_name ?? '',
+            'district_name' => $user->district_name ?? '',
+            'subdistrict_name' => $user->subdistrict_name ?? '',
+            'zip_code' => $user->zip_code ?? '',
+            'address' => $user->address ?? '',
+            'address_details' => $user->address_details ?? '',
+        ]
+        : $request->input('source_address');
+
+    $destinationAddress = $request->destination_use_account_address
+        ? [
+            'province_name' => $user->province_name ?? '',
+            'city_name' => $user->city_name ?? '',
+            'district_name' => $user->district_name ?? '',
+            'subdistrict_name' => $user->subdistrict_name ?? '',
+            'zip_code' => $user->zip_code ?? '',
+            'address' => $user->address ?? '',
+            'address_details' => $user->address_details ?? '',
+        ]
+        : $request->input('destination_address');
+
+    $additionalDetails = [];
+    if ($request->has('additionals')) {
+        $additionals = ServiceAdditional::whereIn('id', array_column($request->additionals, 'id'))->get();
+        foreach ($additionals as $additional) {
+            $additionalDetails[] = [
+                'id' => $additional->id,
+                'type' => $additional->additional_type_id,
+                'name' => $additional->name,
+                'image_path' => $additional->image_path,
+                'additional_price' => $additional->additional_price,
+            ];
+        }
+    }
+
+    $purchaseRequest->update([
+        'service_id' => $request->service_id,
+        'description' => $request->description,
+        'photo_path' => $photoPaths ?: $purchaseRequest->photo_path,
+        'weight' => $request->weight,
+        'shipping_cost_to_admin' => $request->shipping_cost_to_admin,
+        'shipping_to_admin_details' => $request->shipping_to_admin_selection,
+        'source_address' => $sourceAddress,
+        'destination_address' => $destinationAddress,
+        'shipping_to_customer_preference' => $request->shipping_to_customer_preference,
+        'additional_details' => $additionalDetails,
+    ]);
+
+    return redirect()->route('purchase_requests.show', $id)
+        ->with('success', 'Purchase Request updated successfully.');
+}
+
+public function updateOfferPrice(Request $request, $id)
+    {
+        $request->validate([
+            'service_price' => 'required|numeric|min:0',
+            'dp_amount' => 'required|numeric|min:0',
+            'estimation_days' => 'required|integer|min:1',
+            'shipping_cost_to_customer' => 'required|numeric|min:0',
+            'shipping_to_customer_selection' => 'required|array',
+            'total_price' => 'required|numeric|min:0',
+        ]);
+
+        $purchaseRequest = PurchaseRequest::with('offerPrice')
+            ->where('id', $id)
+            ->whereHas('offerPrice', function ($query) {
+                $query->where('status', 'pending');
+            })
             ->firstOrFail();
 
-        $request->validate([
-            'description' => 'required|string',
-            'weight' => 'required|numeric|min:0.1|max:999.99',
-            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'additionals' => 'nullable|array',
-            'additionals.*.id' => 'required_with:additionals|exists:service_additionals,id',
+        $purchaseRequest->offerPrice->update([
+            'service_price' => $request->service_price,
+            'dp_amount' => $request->dp_amount,
+            'estimation_days' => $request->estimation_days,
+            'shipping_cost_to_customer' => $request->shipping_cost_to_customer,
+            'shipping_to_customer_details' => $request->shipping_to_customer_selection,
+            'total_price' => $request->total_price,
         ]);
 
-        Log::info('Update Purchase Request Input:', $request->all());
-
-        $photoPaths = $purchaseRequest->photo_path ?? [];
-        if ($request->hasFile('photos')) {
-            // Hapus foto lama jika ingin diganti sepenuhnya
-            if ($photoPaths) {
-                foreach ($photoPaths as $path) {
-                    Storage::disk('public')->delete($path);
-                }
-            }
-            $photoPaths = [];
-            foreach ($request->file('photos') as $photo) {
-                $photoPaths[] = $photo->store('purchase_requests', 'public');
-            }
-        }
-
-        $additionalDetails = [];
-        if ($request->has('additionals')) {
-            $additionals = Service::find($purchaseRequest->service_id)
-                ->additionals()
-                ->whereIn('id', array_column($request->additionals, 'id'))
-                ->get();
-            foreach ($additionals as $additional) {
-                $additionalDetails[] = [
-                    'id' => $additional->id,
-                    'type' => $additional->additional_type_id,
-                    'name' => $additional->name,
-                    'image_path' => $additional->image_path,
-                    'additional_price' => $additional->additional_price,
-                ];
-            }
-        }
-
-        $purchaseRequest->update([
-            'description' => $request->description,
-            'weight' => $request->weight,
-            'photo_path' => $photoPaths ?: $purchaseRequest->photo_path,
-            'additional_details' => $additionalDetails ?: $purchaseRequest->additional_details,
-        ]);
-
-        return redirect()->route('purchase_requests.show', $id)->with('success', 'Purchase Request updated successfully.');
+        return redirect()->route('admin.purchaserequests.show', $id)
+            ->with('success', 'Offer Price updated successfully.');
     }
 }

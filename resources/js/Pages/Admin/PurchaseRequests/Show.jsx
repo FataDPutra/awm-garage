@@ -3,15 +3,27 @@ import { Head, useForm } from "@inertiajs/react";
 import axios from "axios";
 
 export default function Show({ purchaseRequest }) {
-    const { data, setData, post, errors, processing } = useForm({
-        service_price: "",
-        dp_amount: "",
-        estimation_days: "",
-        shipping_cost_to_customer:
-            purchaseRequest.shipping_to_customer_preference?.cost || 0,
-        shipping_to_customer_selection:
-            purchaseRequest.shipping_to_customer_preference || null,
-        total_price: "",
+    const [isEditingOffer, setIsEditingOffer] = useState(false);
+
+    const { data, setData, post, put, errors, processing } = useForm({
+        service_price: isEditingOffer
+            ? purchaseRequest.offer_price.service_price || ""
+            : "",
+        dp_amount: isEditingOffer
+            ? purchaseRequest.offer_price.dp_amount || ""
+            : "",
+        estimation_days: isEditingOffer
+            ? purchaseRequest.offer_price.estimation_days || ""
+            : "",
+        shipping_cost_to_customer: isEditingOffer
+            ? purchaseRequest.offer_price.shipping_cost_to_customer || 0
+            : purchaseRequest.shipping_to_customer_preference?.cost || 0,
+        shipping_to_customer_selection: isEditingOffer
+            ? purchaseRequest.offer_price.shipping_to_customer_details || null
+            : purchaseRequest.shipping_to_customer_preference || null,
+        total_price: isEditingOffer
+            ? purchaseRequest.offer_price.total_price || ""
+            : "",
         pr_id: purchaseRequest.id,
     });
 
@@ -71,11 +83,20 @@ export default function Show({ purchaseRequest }) {
                     costs.find(
                         (opt) =>
                             opt.code ===
-                                purchaseRequest.shipping_to_customer_preference
-                                    ?.code &&
+                                (isEditingOffer
+                                    ? purchaseRequest.offer_price
+                                          ?.shipping_to_customer_details?.code
+                                    : purchaseRequest
+                                          .shipping_to_customer_preference
+                                          ?.code) &&
                             opt.service ===
-                                purchaseRequest.shipping_to_customer_preference
-                                    ?.service
+                                (isEditingOffer
+                                    ? purchaseRequest.offer_price
+                                          ?.shipping_to_customer_details
+                                          ?.service
+                                    : purchaseRequest
+                                          .shipping_to_customer_preference
+                                          ?.service)
                     ) || costs[0];
                 setData({
                     ...data,
@@ -127,7 +148,7 @@ export default function Show({ purchaseRequest }) {
             const servicePrice = parseFloat(data.service_price);
             const dpAmount = (servicePrice * 0.5).toFixed(2);
             const totalPrice =
-                servicePrice + parseFloat(data.shipping_cost_to_customer);
+                servicePrice + parseFloat(data.shipping_cost_to_customer || 0);
             setData({
                 ...data,
                 dp_amount: dpAmount,
@@ -150,11 +171,32 @@ export default function Show({ purchaseRequest }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route("admin.purchaserequests.offer", purchaseRequest.id), {
-            onSuccess: () => alert("Offer Price sent successfully!"),
-            onError: () =>
-                alert("Failed to send Offer Price. Please check your input."),
-        });
+        if (isEditingOffer) {
+            put(
+                route(
+                    "admin.purchaserequests.update_offer",
+                    purchaseRequest.id
+                ),
+                {
+                    onSuccess: () => {
+                        alert("Offer Price updated successfully!");
+                        setIsEditingOffer(false);
+                    },
+                    onError: () =>
+                        alert(
+                            "Failed to update Offer Price. Please check your input."
+                        ),
+                }
+            );
+        } else {
+            post(route("admin.purchaserequests.offer", purchaseRequest.id), {
+                onSuccess: () => alert("Offer Price sent successfully!"),
+                onError: () =>
+                    alert(
+                        "Failed to send Offer Price. Please check your input."
+                    ),
+            });
+        }
     };
 
     const getTotalEstimatedDays = (estimationDays, etd) => {
@@ -190,7 +232,6 @@ export default function Show({ purchaseRequest }) {
                         <strong>Weight:</strong> {purchaseRequest.weight} kg
                     </p>
 
-                    {/* Tambahkan Additional Details */}
                     <div className="col-span-2">
                         <strong>Additional Options:</strong>
                         {purchaseRequest.additional_details &&
@@ -291,10 +332,12 @@ export default function Show({ purchaseRequest }) {
                     </div>
                 )}
 
-                {!purchaseRequest.offer_price ? (
+                {!purchaseRequest.offer_price || isEditingOffer ? (
                     <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                         <h2 className="text-lg font-semibold">
-                            Create Offer Price
+                            {isEditingOffer
+                                ? "Edit Offer Price"
+                                : "Create Offer Price"}
                         </h2>
 
                         <div>
@@ -450,13 +493,28 @@ export default function Show({ purchaseRequest }) {
                             )}
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={processing || isCalculatingShipping}
-                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
-                        >
-                            {processing ? "Processing..." : "Submit Offer"}
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="submit"
+                                disabled={processing || isCalculatingShipping}
+                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+                            >
+                                {processing
+                                    ? "Processing..."
+                                    : isEditingOffer
+                                    ? "Update Offer"
+                                    : "Submit Offer"}
+                            </button>
+                            {isEditingOffer && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingOffer(false)}
+                                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700"
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
                     </form>
                 ) : (
                     <div className="mt-6 p-4 border rounded bg-gray-100">
@@ -515,7 +573,15 @@ export default function Show({ purchaseRequest }) {
                             {purchaseRequest.offer_price.status}
                         </p>
 
-                        {/* Tampilkan Additional Details di Offer Price */}
+                        {purchaseRequest.offer_price.status === "pending" && (
+                            <button
+                                onClick={() => setIsEditingOffer(true)}
+                                className="mt-4 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-700"
+                            >
+                                Edit Offer Price
+                            </button>
+                        )}
+
                         {purchaseRequest.additional_details &&
                             purchaseRequest.additional_details.length > 0 && (
                                 <div className="mt-2">
