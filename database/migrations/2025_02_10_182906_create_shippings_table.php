@@ -16,6 +16,7 @@ public function up()
         $table->string('order_id', 20);
         $table->foreign('order_id')->references('order_id')->on('orders')->onDelete('cascade');
         $table->string('courier_code', 20);
+        $table->string('courier_name', 50);
         $table->string('courier_service', 50);
         $table->string('tracking_number', 100)->nullable();
         $table->timestamp('shipping_date')->nullable();

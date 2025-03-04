@@ -1,147 +1,309 @@
 import React from "react";
-import { usePage } from "@inertiajs/react";
+import { Head, usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 
 export default function ShowCustomer() {
     const { purchaseRequest } = usePage().props;
 
     const handleAcceptOffer = () => {
-        Inertia.post(`/purchase-requests/${purchaseRequest.id}/accept-offer`);
+        Inertia.post(
+            route("purchase_requests.acceptOffer", purchaseRequest.id)
+        );
     };
 
     const handleRejectOffer = () => {
-        Inertia.post(`/purchase-requests/${purchaseRequest.id}/reject-offer`);
+        Inertia.post(
+            route("purchase_requests.rejectOffer", purchaseRequest.id)
+        );
     };
+
     const handleDP = () => {
-        Inertia.get(`/payments/${purchaseRequest.offer_price.id}/payment-dp`);
+        Inertia.get(
+            route("payments.payment-dp", purchaseRequest.offer_price.id)
+        );
     };
+
     const handleFull = () => {
-        Inertia.get(`/payments/${purchaseRequest.offer_price.id}/payment-full`);
+        Inertia.get(
+            route("payments.payment-full", purchaseRequest.offer_price.id)
+        );
+    };
+
+    const getTotalEstimatedDays = (estimationDays, etd) => {
+        if (!estimationDays || !etd) return "N/A";
+        const minEtd = parseInt(etd.split("-")[0]);
+        const maxEtd = parseInt(etd.split("-")[1] || etd.split("-")[0]);
+        const days = parseInt(estimationDays);
+        return `${days + minEtd} - ${days + maxEtd} days`;
     };
 
     return (
-        <div className="p-6 bg-white shadow rounded">
-            <h2 className="text-lg font-bold">Detail Purchase Request</h2>
-            Menampilkan Foto
-            {/* {purchaseRequest.photo_path && (
-                <div className="mb-4">
-                    <img
-                        src={`/storage/${purchaseRequest.photo_path}`}
-                        alt="Purchase Request"
-                        className="w-full max-w-md rounded shadow-md"
-                    />
-                </div>
-            )} */}
-            {purchaseRequest.photo_path &&
-                (Array.isArray(purchaseRequest.photo_path) ? (
-                    purchaseRequest.photo_path.map((photo, index) => (
-                        <div className="mb-4" key={index}>
-                            <img
-                                src={`/storage/${photo.replace(/\\/g, "")}`} // Remove any backslashes
-                                alt={`Purchase Request ${index}`}
-                                className="w-16 h-16 object-cover rounded border"
-                            />
-                        </div>
-                    ))
-                ) : (
+        <div className="container mx-auto p-6">
+            <Head title="Purchase Request Details" />
+            <div className="bg-white p-6 shadow rounded">
+                <h2 className="text-lg font-bold mb-4">
+                    Detail Purchase Request #{purchaseRequest.id}
+                </h2>
+
+                {purchaseRequest.photo_path && (
                     <div className="mb-4">
-                        <img
-                            src={`/storage/${purchaseRequest.photo_path.replace(
-                                /\\/g,
-                                ""
-                            )}`} // Remove any backslashes
-                            alt="Purchase Request"
-                            className="w-full max-w-md rounded shadow-md"
-                        />
-                    </div>
-                ))}
-            <p>
-                <strong>Service:</strong>{" "}
-                {purchaseRequest.service?.service_name}
-            </p>
-            <p>
-                <strong>Description:</strong> {purchaseRequest.description}
-            </p>
-            <p>
-                <strong>Weight:</strong> {purchaseRequest.weight} kg
-            </p>
-            <p>
-                <strong>Shipping Cost:</strong> Rp{" "}
-                {purchaseRequest.shipping_cost}
-            </p>
-            {/* Menampilkan Offer Price jika status offer_sent atau processing */}
-            {(purchaseRequest.status === "offer_sent" ||
-                purchaseRequest.status === "processing") &&
-                purchaseRequest.offer_price && (
-                    <div className="mt-4 p-4 border rounded bg-gray-100">
-                        <h3 className="font-bold">Offer Price</h3>
-                        <p>
-                            <strong>Service Price:</strong> Rp{" "}
-                            {purchaseRequest.offer_price.service_price}
-                        </p>
-                        <p>
-                            <strong>DP Amount:</strong> Rp{" "}
-                            {purchaseRequest.offer_price.dp_amount}
-                        </p>
-                        <p>
-                            <strong>Estimation Days:</strong>{" "}
-                            {purchaseRequest.offer_price.estimation_days} days
-                        </p>
-                        <p>
-                            <strong>Total Price:</strong> Rp{" "}
-                            {purchaseRequest.offer_price.total_price}
-                        </p>
+                        {Array.isArray(purchaseRequest.photo_path) ? (
+                            purchaseRequest.photo_path.map((photo, index) => (
+                                <img
+                                    key={index}
+                                    src={`/storage/${photo.replace(/\\/g, "")}`}
+                                    alt={`Photo ${index + 1}`}
+                                    className="w-24 h-24 object-cover rounded border mr-2 inline-block"
+                                />
+                            ))
+                        ) : (
+                            <img
+                                src={`/storage/${purchaseRequest.photo_path.replace(
+                                    /\\/g,
+                                    ""
+                                )}`}
+                                alt="Purchase Request"
+                                className="w-full max-w-md rounded shadow-md"
+                            />
+                        )}
                     </div>
                 )}
-            {/* Menampilkan Tombol Setuju/Tidak Setuju jika statusnya offer_price */}
-            {purchaseRequest.status === "offer_sent" &&
-                purchaseRequest.offer_price && (
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <p>
+                        <strong>Service:</strong>{" "}
+                        {purchaseRequest.service?.service_name}
+                    </p>
+                    <p>
+                        <strong>Description:</strong>{" "}
+                        {purchaseRequest.description}
+                    </p>
+                    <p>
+                        <strong>Weight:</strong> {purchaseRequest.weight} kg
+                    </p>
+
+                    {/* Tambahkan Additional Details */}
+                    <div className="col-span-2">
+                        <strong>Additional Options:</strong>
+                        {purchaseRequest.additional_details &&
+                        purchaseRequest.additional_details.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-1">
+                                {purchaseRequest.additional_details.map(
+                                    (add, index) => (
+                                        <li
+                                            key={index}
+                                            className="flex items-center gap-2"
+                                        >
+                                            {add.name} (+{add.additional_price}{" "}
+                                            Rp)
+                                            {add.image_path && (
+                                                <img
+                                                    src={`/storage/${add.image_path}`}
+                                                    alt={add.name}
+                                                    className="w-12 h-12 object-cover rounded"
+                                                />
+                                            )}
+                                        </li>
+                                    )
+                                )}
+                            </ul>
+                        ) : (
+                            <span className="ml-2 text-gray-500">
+                                No additional options selected
+                            </span>
+                        )}
+                    </div>
+
+                    <p>
+                        <strong>Shipping Cost to Admin:</strong> Rp{" "}
+                        {purchaseRequest.shipping_cost_to_admin}
+                    </p>
+                    <p>
+                        <strong>Shipping to Admin Details:</strong>{" "}
+                        {purchaseRequest.shipping_to_admin_details?.name} -{" "}
+                        {purchaseRequest.shipping_to_admin_details?.service}{" "}
+                        (ETD:{" "}
+                        {purchaseRequest.shipping_to_admin_details?.etd ||
+                            "N/A"}
+                        )
+                    </p>
+                    <p>
+                        <strong>Source Address:</strong> <br />
+                        {purchaseRequest.source_address.province_name} <br />
+                        {purchaseRequest.source_address.district_name} <br />
+                        {purchaseRequest.source_address.subdistrict_name} <br />
+                        {purchaseRequest.source_address.address} <br />
+                        {purchaseRequest.source_address.address_details}
+                    </p>
+                    <p>
+                        <strong>Destination Address:</strong> <br />
+                        {purchaseRequest.destination_address.province_name}{" "}
+                        <br />
+                        {purchaseRequest.destination_address.district_name}{" "}
+                        <br />
+                        {
+                            purchaseRequest.destination_address.subdistrict_name
+                        }{" "}
+                        <br />
+                        {purchaseRequest.destination_address.address} <br />
+                        {purchaseRequest.destination_address.address_details}
+                    </p>
+                    <p>
+                        <strong>Shipping Preference to Customer:</strong>{" "}
+                        {purchaseRequest.shipping_to_customer_preference?.name}{" "}
+                        -{" "}
+                        {
+                            purchaseRequest.shipping_to_customer_preference
+                                ?.service
+                        }{" "}
+                        ({purchaseRequest.shipping_to_customer_preference?.cost}{" "}
+                        Rp, ETD:{" "}
+                        {purchaseRequest.shipping_to_customer_preference?.etd ||
+                            "N/A"}
+                        )
+                    </p>
+                </div>
+
+                {(purchaseRequest.status === "offer_sent" ||
+                    purchaseRequest.status === "waiting_for_dp" ||
+                    purchaseRequest.status === "processing") &&
+                    purchaseRequest.offer_price && (
+                        <div className="mt-4 p-4 border rounded bg-gray-100">
+                            <h3 className="font-bold">Offer Price</h3>
+                            <p>
+                                <strong>Service Price:</strong> Rp{" "}
+                                {purchaseRequest.offer_price.service_price}
+                            </p>
+                            <p>
+                                <strong>DP Amount:</strong> Rp{" "}
+                                {purchaseRequest.offer_price.dp_amount}
+                            </p>
+                            <p>
+                                <strong>Estimation Days:</strong>{" "}
+                                {purchaseRequest.offer_price.estimation_days}{" "}
+                                days
+                                {purchaseRequest.offer_price
+                                    .shipping_to_customer_details?.etd && (
+                                    <span>
+                                        {" (Total: " +
+                                            getTotalEstimatedDays(
+                                                purchaseRequest.offer_price
+                                                    .estimation_days,
+                                                purchaseRequest.offer_price
+                                                    .shipping_to_customer_details
+                                                    .etd
+                                            ) +
+                                            ")"}
+                                    </span>
+                                )}
+                            </p>
+                            <p>
+                                <strong>Shipping Cost to Customer:</strong> Rp{" "}
+                                {
+                                    purchaseRequest.offer_price
+                                        .shipping_cost_to_customer
+                                }
+                            </p>
+                            <p>
+                                <strong>Shipping Details:</strong>{" "}
+                                {
+                                    purchaseRequest.offer_price
+                                        .shipping_to_customer_details?.name
+                                }{" "}
+                                -{" "}
+                                {
+                                    purchaseRequest.offer_price
+                                        .shipping_to_customer_details?.service
+                                }
+                            </p>
+                            <p>
+                                <strong>Total Price:</strong> Rp{" "}
+                                {purchaseRequest.offer_price.total_price}
+                            </p>
+
+                            {/* Tambahkan Additional Details di Offer Price */}
+                            {purchaseRequest.additional_details &&
+                                purchaseRequest.additional_details.length >
+                                    0 && (
+                                    <div className="mt-2">
+                                        <strong>Additional Options:</strong>
+                                        <ul className="list-disc pl-5 mt-1">
+                                            {purchaseRequest.additional_details.map(
+                                                (add, index) => (
+                                                    <li
+                                                        key={index}
+                                                        className="flex items-center gap-2"
+                                                    >
+                                                        {add.name} (+
+                                                        {
+                                                            add.additional_price
+                                                        }{" "}
+                                                        Rp)
+                                                        {add.image_path && (
+                                                            <img
+                                                                src={`/storage/${add.image_path}`}
+                                                                alt={add.name}
+                                                                className="w-12 h-12 object-cover rounded"
+                                                            />
+                                                        )}
+                                                    </li>
+                                                )
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+                        </div>
+                    )}
+
+                {purchaseRequest.status === "offer_sent" &&
+                    purchaseRequest.offer_price && (
+                        <div className="mt-4 flex gap-2">
+                            <button
+                                onClick={handleAcceptOffer}
+                                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                            >
+                                Accept Offer
+                            </button>
+                            <button
+                                onClick={handleRejectOffer}
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
+                            >
+                                Reject Offer
+                            </button>
+                        </div>
+                    )}
+
+                {purchaseRequest.status === "waiting_for_dp" && (
                     <div className="mt-4 flex gap-2">
                         <button
-                            onClick={handleAcceptOffer}
-                            className="bg-green-500 text-white px-4 py-2 rounded"
+                            onClick={handleDP}
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
                         >
-                            Setuju
+                            Pay DP
                         </button>
                         <button
-                            onClick={handleRejectOffer}
-                            className="bg-red-500 text-white px-4 py-2 rounded"
+                            onClick={handleFull}
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
                         >
-                            Tidak Setuju
+                            Pay Full
                         </button>
                     </div>
                 )}
-            {/* Menampilkan Offer Price Status jika statusnya processing */}
-            {purchaseRequest.status === "processing" &&
-                purchaseRequest.offer_price && (
-                    <div className="mt-4 p-4 border rounded bg-gray-100">
-                        <p>
-                            <strong>Status Pembayaran DP:</strong>{" "}
-                            {purchaseRequest.offer_price.status}
-                        </p>
-                        <p>
-                            <strong>Status Pesanan:</strong> Siapkan Barang
-                            Untuk Dikirim{" "}
-                        </p>
-                    </div>
-                )}
-            {/* Menampilkan Tombol Pembayaran jika statusnya waiting_for_dp */}
-            {purchaseRequest.status === "waiting_for_dp" && (
-                <div className="mt-4">
-                    <button
-                        onClick={handleDP}
-                        className="bg-blue-500 text-white px-4 py-2 rounded mx-2"
-                    >
-                        Bayar DP
-                    </button>
-                    <button
-                        onClick={handleFull}
-                        className="bg-blue-500 text-white px-4 py-2 rounded"
-                    >
-                        Bayar Full
-                    </button>
-                </div>
-            )}
+
+                {purchaseRequest.status === "processing" &&
+                    purchaseRequest.offer_price && (
+                        <div className="mt-4 p-4 border rounded bg-gray-100">
+                            <p>
+                                <strong>Payment Status:</strong>{" "}
+                                {purchaseRequest.offer_price.status}
+                            </p>
+                            <p>
+                                <strong>Order Status:</strong> Prepare your item
+                                for shipping
+                            </p>
+                        </div>
+                    )}
+            </div>
         </div>
     );
 }

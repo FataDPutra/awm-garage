@@ -1,9 +1,20 @@
+import { Inertia } from "@inertiajs/inertia";
 import { Link, router } from "@inertiajs/react";
 
 export default function Index({ services }) {
     const handleDelete = (id) => {
-        if (confirm("Yakin ingin menghapus layanan ini?")) {
-            router.delete(route("services.destroy", id));
+        if (confirm("Are you sure you want to delete this service?")) {
+            Inertia.delete(route("services.destroy", id), {
+                onSuccess: () => {
+                    console.log("Service deleted successfully");
+                },
+                onError: (errors) => {
+                    console.log("Errors:", errors);
+                    alert(
+                        "Failed to delete service: " + JSON.stringify(errors)
+                    );
+                },
+            });
         }
     };
 

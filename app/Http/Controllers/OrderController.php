@@ -26,7 +26,7 @@ class OrderController extends Controller
     // Menampilkan detail order
     public function show($order_id)
     {
-        $order = Order::with('offerPrice.purchaseRequest.service', 'offerPrice.purchaseRequest.user','offerPrice.payments','complains' )
+        $order = Order::with('offerPrice.purchaseRequest.service', 'offerPrice.purchaseRequest.user','offerPrice.payments','complains','shipping' )
             ->where('order_id', $order_id)
             ->firstOrFail();
         // dd($order);
@@ -193,7 +193,8 @@ public function showCustomer($order_id)
             'offerPrice', 
             'offerPrice.purchaseRequest.service', 
             'offerPrice.purchaseRequest.user',
-            'complains'
+            'complains',
+            'shipping'
         ])
         ->whereHas('offerPrice.purchaseRequest', function ($query) use ($user) {
             $query->where('user_id', $user->id);

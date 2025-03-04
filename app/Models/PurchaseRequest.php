@@ -12,14 +12,29 @@ class PurchaseRequest extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'service_id', 'description', 'photo_path',
-        'weight', 'shipping_cost', 'status'
+        'user_id',
+        'service_id',
+        'description',
+        'photo_path',
+        'weight',
+        'shipping_cost_to_admin',
+        'shipping_to_admin_details',
+        'source_address',
+        'destination_address',
+        'shipping_to_customer_preference',
+        'additional_details', 
+        'status',
     ];
 
     protected $casts = [
-        'photo_path' => 'array', // Konversi JSON ke array otomatis
+        'photo_path' => 'array',
         'weight' => 'decimal:2',
-        'shipping_cost' => 'decimal:2',
+        'shipping_cost_to_admin' => 'decimal:2',
+        'shipping_to_admin_details' => 'array',
+        'source_address' => 'array',
+        'destination_address' => 'array',
+        'shipping_to_customer_preference' => 'array',
+        'additional_details' => 'array',
     ];
 
     public function user(): BelongsTo

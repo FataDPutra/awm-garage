@@ -1,5 +1,6 @@
 import { Link, useForm } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
+import { useState } from "react";
 
 export default function CustomerShow({ order }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -8,6 +9,8 @@ export default function CustomerShow({ order }) {
         customer_confirmation: "",
         customer_feedback: "",
     });
+
+    const [previewImage, setPreviewImage] = useState(null);
 
     const handleFull = () => {
         Inertia.get(`/payments/${order.offer_price.id}/payment-full`);
@@ -36,6 +39,27 @@ export default function CustomerShow({ order }) {
         );
     };
 
+    // [CHANGED] Fungsi untuk Konfirmasi Barang Diterima
+    const handleConfirmReceived = () => {
+        Inertia.post(`/orders/${order.order_id}/confirm-received-customer`, {
+            preserveScroll: true,
+            onSuccess: () => alert("Barang telah dikonfirmasi diterima!"),
+            onError: (errors) =>
+                alert(
+                    "Gagal mengkonfirmasi: " +
+                        (errors.message || "Unknown error")
+                ),
+        });
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData("shipping_proof_customer", file);
+            setPreviewImage(URL.createObjectURL(file));
+        }
+    };
+
     return (
         <div className="container mx-auto p-6">
             <h1 className="text-2xl font-bold mb-4">Detail Pesanan</h1>
@@ -53,23 +77,11 @@ export default function CustomerShow({ order }) {
                         : "Belum Ditentukan"}
                 </p>
 
-                {/* {order.completed_photo_path && (
-                    <div className="mt-4">
-                        <h2 className="text-xl font-semibold">
-                            Hasil Pengerjaan:
-                        </h2>
-                        <img
-                            src={`/storage/${order.completed_photo_path}`}
-                            alt="Completed Work"
-                            className="w-64 h-64 object-cover mt-2 border rounded-lg"
-                        />
-                    </div>
-                )} */}
-                {/* {order.completed_photo_path.length > 0 && (
+                {order.completed_photo_path && (
                     <p>
                         <strong>Hasil Pengerjaan </strong>
                     </p>
-                )} */}
+                )}
 
                 {order.completed_photo_path &&
                     (Array.isArray(order.completed_photo_path) ? (
@@ -90,30 +102,17 @@ export default function CustomerShow({ order }) {
                         />
                     ))}
 
-                {/* {order.complains.customer_feedback > 0 && (
-                    <>
-                        <p>
-                            <strong>Pengerjaan Terbaru</strong>
-                        </p>
-                        <p>
-                            <strong>Customer Feedback : </strong>{" "}
-                            {order.complains.customer_feedback}
-                        </p>
-                    </>
-                    
-                )} */}
-
                 {order.complains &&
                     order.complains.map(
                         (complain, index) =>
                             complain.revised_photo_path && (
                                 <div className="mb-4" key={index}>
-                                    {/* Tampilkan Customer Feedback jika ada */}
                                     {complain.customer_feedback && (
                                         <>
                                             <p>
-                                                <strong>Perubahan</strong>{" "}
-                                                {index + 1}
+                                                <strong>
+                                                    Perubahan {index + 1}
+                                                </strong>
                                             </p>
                                             <p>
                                                 <strong>
@@ -123,12 +122,9 @@ export default function CustomerShow({ order }) {
                                             </p>
                                         </>
                                     )}
-
-                                    {/* Tampilkan Revised Photo jika ada */}
                                     {Array.isArray(
                                         complain.revised_photo_path
                                     ) ? (
-                                        // Jika revised_photo_path adalah array, tampilkan semua foto
                                         complain.revised_photo_path.map(
                                             (photo, photoIndex) => (
                                                 <img
@@ -140,7 +136,6 @@ export default function CustomerShow({ order }) {
                                             )
                                         )
                                     ) : (
-                                        // Jika revised_photo_path bukan array, tampilkan satu foto
                                         <img
                                             src={`/storage/${complain.revised_photo_path}`}
                                             alt="Revised"
@@ -151,43 +146,6 @@ export default function CustomerShow({ order }) {
                             )
                     )}
 
-                {/* {order.revised_photo_path &&
-                    (Array.isArray(order.revised_photo_path) ? (
-                        order.revised_photo_path.map((revised, index) => (
-                            <>
-                                <p>
-                                    <strong>Pengerjaan Terbaru</strong>
-                                </p>
-                                <p>
-                                    <strong>Customer Feedback : </strong>{" "}
-                                    {order.customer_feedback}
-                                </p>
-                                <div className="mb-4" key={index}>
-                                    <img
-                                        src={`/storage/${revised.replace(
-                                            /\\/g,
-                                            ""
-                                        )}`} // Remove any backslashes
-                                        alt={`Order ${index}`}
-                                        className="w-16 h-16 object-cover rounded border"
-                                    />
-                                </div>
-                            </>
-                        ))
-                    ) : (
-                        <div className="mb-4">
-                            <img
-                                src={`/storage/${order.revised_photo_path.replace(
-                                    /\\/g,
-                                    ""
-                                )}`} // Remove any backslashes
-                                alt="Order"
-                                className="w-full max-w-md rounded shadow-md"
-                            />
-                        </div>
-                    ))} */}
-
-                {/* Jika completed_photo_path sudah ada dan pelanggan belum konfirmasi */}
                 {order.completed_photo_path &&
                     order.customer_confirmation === "pending" && (
                         <form
@@ -218,7 +176,6 @@ export default function CustomerShow({ order }) {
                                     <span className="ml-2">Saya Setuju</span>
                                 </label>
                             </div>
-
                             <div className="mt-2">
                                 <label>
                                     <input
@@ -242,7 +199,6 @@ export default function CustomerShow({ order }) {
                                     </span>
                                 </label>
                             </div>
-
                             {data.customer_confirmation === "rejected" && (
                                 <div className="mt-2">
                                     <label className="block">
@@ -263,7 +219,6 @@ export default function CustomerShow({ order }) {
                                     </label>
                                 </div>
                             )}
-
                             <button
                                 type="submit"
                                 className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
@@ -276,7 +231,6 @@ export default function CustomerShow({ order }) {
                         </form>
                     )}
 
-                {/* Jika pelanggan setuju, munculkan tombol bayar */}
                 {order.customer_confirmation === "approved" &&
                     order.status === "waiting_for_payment" && (
                         <button
@@ -287,7 +241,6 @@ export default function CustomerShow({ order }) {
                         </button>
                     )}
 
-                {/* Jika pelanggan tidak setuju, tampilkan alasan */}
                 {order.customer_confirmation === "rejected" &&
                     order.complains.length > 0 && (
                         <div className="mt-4 p-4 bg-red-100 rounded">
@@ -303,7 +256,6 @@ export default function CustomerShow({ order }) {
                         </div>
                     )}
 
-                {/* Form untuk konfirmasi pengiriman jika statusnya 'waiting_for_customer_shipment' */}
                 {order.status === "waiting_for_customer_shipment" && (
                     <div className="mt-4 p-4 bg-gray-100 rounded">
                         <h2 className="text-lg font-semibold mb-2">
@@ -332,7 +284,6 @@ export default function CustomerShow({ order }) {
                                     </p>
                                 )}
                             </label>
-
                             <label className="block mb-2">
                                 <span className="text-gray-700">
                                     Unggah Bukti Pengiriman:
@@ -340,12 +291,7 @@ export default function CustomerShow({ order }) {
                                 <input
                                     type="file"
                                     accept="image/*"
-                                    onChange={(e) =>
-                                        setData(
-                                            "shipping_proof_customer",
-                                            e.target.files[0]
-                                        )
-                                    }
+                                    onChange={handleFileChange}
                                     className="w-full p-2 border rounded"
                                     required
                                 />
@@ -355,7 +301,16 @@ export default function CustomerShow({ order }) {
                                     </p>
                                 )}
                             </label>
-
+                            {previewImage && (
+                                <div className="mt-2">
+                                    <p className="text-gray-700">Preview:</p>
+                                    <img
+                                        src={previewImage}
+                                        alt="Preview Bukti Pengiriman"
+                                        className="w-32 h-32 object-cover border rounded-md"
+                                    />
+                                </div>
+                            )}
                             <button
                                 type="submit"
                                 className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
@@ -366,6 +321,85 @@ export default function CustomerShow({ order }) {
                                     : "Konfirmasi Pengiriman"}
                             </button>
                         </form>
+                    </div>
+                )}
+
+                {order.shipping && (
+                    <div className="mt-4 p-4 border rounded bg-gray-100">
+                        <h3 className="font-bold">Informasi Pengiriman</h3>
+                        <p>
+                            <strong>Kurir:</strong>{" "}
+                            {order.shipping.courier_code} -{" "}
+                            {order.shipping.courier_name} -{" "}
+                            {order.shipping.courier_service}
+                        </p>
+                        <p>
+                            <strong>Nomor Resi:</strong>{" "}
+                            {order.shipping.tracking_number ||
+                                "Belum Ditambahkan"}
+                        </p>
+                        <p>
+                            <strong>Tanggal Pengiriman:</strong>{" "}
+                            {order.shipping.shipping_date || "Belum Dikirim"}
+                        </p>
+                        <p>
+                            <strong>Tanggal Diterima:</strong>{" "}
+                            {order.shipping.received_date || "Belum Diterima"}
+                        </p>
+                        <p>
+                            <strong>Status Pengiriman:</strong>{" "}
+                            {order.shipping.status === "in_transit"
+                                ? "Dalam Pengiriman"
+                                : "Diterima"}
+                        </p>
+                        <p>
+                            <strong>Alamat Penerima:</strong> <br />
+                            {order.offer_price.purchase_request.user.phone}{" "}
+                            <br />
+                            {
+                                order.offer_price.purchase_request
+                                    .destination_address.address
+                            }{" "}
+                            <br />
+                            {
+                                order.offer_price.purchase_request
+                                    .destination_address.subdistrict_name
+                            }
+                            ,{" "}
+                            {
+                                order.offer_price.purchase_request
+                                    .destination_address.district_name
+                            }{" "}
+                            <br />
+                            {
+                                order.offer_price.purchase_request
+                                    .destination_address.city_name
+                            }
+                            ,{" "}
+                            {
+                                order.offer_price.purchase_request
+                                    .destination_address.province_name
+                            }{" "}
+                            <br />
+                            {
+                                order.offer_price.purchase_request
+                                    .destination_address.zip_code
+                            }{" "}
+                            <br />
+                            {
+                                order.offer_price.purchase_request
+                                    .destination_address.address_details
+                            }
+                        </p>
+                        {/* [CHANGED] Tombol Barang Diterima */}
+                        {order.shipping.status === "in_transit" && (
+                            <button
+                                onClick={handleConfirmReceived}
+                                className="mt-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                            >
+                                Barang Diterima
+                            </button>
+                        )}
                     </div>
                 )}
 

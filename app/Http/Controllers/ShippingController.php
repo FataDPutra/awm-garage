@@ -7,6 +7,7 @@ use App\Models\Shipping;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
+
 class ShippingController extends Controller
 {
     // Menampilkan daftar pengiriman
@@ -32,6 +33,8 @@ class ShippingController extends Controller
             'shipping' => $shipping
         ]);
     }
+
+ 
 
     // Admin menginput data pengiriman
     public function store(Request $request, $order_id)
@@ -70,5 +73,64 @@ class ShippingController extends Controller
         ]);
 
         return redirect()->route('shippings.index')->with('success', 'Pesanan telah diterima oleh kustomer.');
+    }
+
+
+     public function createShipment(Request $request, $order_id)
+    {
+        $order = Order::with('offerPrice')->where('order_id', $order_id)->firstOrFail();
+
+        if ($order->status !== 'waiting_for_shipment') {
+            return redirect()->back()->with('error', 'Order tidak dalam status waiting_for_shipment.');
+        }
+
+        $request->validate([
+            'tracking_number' => 'nullable|string|max:100',
+        ]);
+
+        $shippingDetails = $order->offerPrice->shipping_to_customer_details;
+
+        // Buat entri pengiriman baru
+        Shipping::create([
+            'order_id' => $order->order_id,
+            'courier_code' => $shippingDetails['code'],
+            'courier_name' => $shippingDetails['name'],
+            'courier_service' => $shippingDetails['service'],
+            'tracking_number' => $request->tracking_number,
+            'shipping_date' => $request->tracking_number ? now() : null, // Set tanggal pengiriman jika ada nomor resi
+            'received_date' => null,
+            'status' => 'in_transit',
+        ]);
+
+        // Update status order berdasarkan apakah nomor resi diisi
+        $newStatus = $request->tracking_number ? 'shipped' : 'waiting_for_shipment_tracking';
+        $order->update(['status' => $newStatus]);
+
+        return redirect()->route('orders.show', $order->order_id)->with('success', 'Pengiriman berhasil dibuat.' . ($request->tracking_number ? '' : ' Tambahkan nomor resi untuk mengubah status menjadi shipped.'));
+    }
+
+public function confirmReceivedCustomer(Request $request, $order_id)
+    {
+        $order = Order::with(['shipping', 'offerPrice.purchaseRequest'])->where('order_id', $order_id)->firstOrFail();
+
+        // Periksa apakah offerPrice dan purchaseRequest ada sebelum mengakses user_id
+        if (!$order->offerPrice || !$order->offerPrice->purchaseRequest || $order->offerPrice->purchaseRequest->user_id !== auth()->id()) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke pesanan ini.');
+        }
+
+        if (!$order->shipping || $order->shipping->status !== 'in_transit') {
+            return redirect()->back()->with('error', 'Pengiriman tidak dalam status in_transit.');
+        }
+
+        // Update status pengiriman menjadi delivered
+        $order->shipping->update([
+            'status' => 'delivered',
+            'received_date' => now(),
+        ]);
+
+        // Update status order menjadi completed
+        $order->update(['status' => 'completed']);
+
+        return redirect()->back()->with('success', 'Barang telah dikonfirmasi diterima.');
     }
 }

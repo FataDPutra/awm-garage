@@ -77,7 +77,6 @@ class PaymentController extends Controller
 }
 
 
-    // 📌 Menyimpan pembayaran penuh
 public function storeFull(Request $request)
 {
     $request->validate([
@@ -98,7 +97,6 @@ public function storeFull(Request $request)
 
     $remainingAmount = $dpPaid ? ($offerPrice->total_price - $dpAmount) : $offerPrice->total_price;
 
-
     // 🔹 Simulasi API Payment Gateway
     $transaction_id = 'TXN-' . strtoupper(uniqid());
 
@@ -114,22 +112,29 @@ public function storeFull(Request $request)
 
     // 🔹 Check if Order exists, create new one if not
     $order = Order::where('offerprice_id', $offerPrice->id)->first();
+    $orderExistedBefore = $order !== null; // [CHANGED] Simpan status apakah order sudah ada sebelumnya
 
     if ($order) {
         // If the order exists, update the status
         $order->update(['status' => 'waiting_for_shipment']);
     } else {
         // If the order does not exist, create a new one
-        Order::create([
+        $order = Order::create([
             'order_id' => 'INV-' . now()->format('Ymd') . '-' . str_pad($offerPrice->id, 4, '0', STR_PAD_LEFT),
             'offerprice_id' => $offerPrice->id,
             'status' => 'waiting_for_customer_shipment'
         ]);
     }
-        $offerPrice->update(['status' => 'accepted']);
-        $offerPrice->purchaseRequest->update(['status' => 'processing']);
 
-    return redirect()->route('purchase_requests.index')->with('success', 'Pembayaran penuh berhasil, barang akan dikirim.');
+    $offerPrice->update(['status' => 'accepted']);
+    $offerPrice->purchaseRequest->update(['status' => 'processing']);
+
+    // [CHANGED] Redirect berdasarkan apakah order sudah ada sebelumnya
+    if ($orderExistedBefore) {
+        return redirect()->route('orders-customer.index')->with('success', 'Pembayaran penuh berhasil, barang akan dikirim.');
+    } else {
+        return redirect()->route('purchase_requests.index')->with('success', 'Pembayaran penuh berhasil, barang akan dikirim.');
+    }
 }
 
 }

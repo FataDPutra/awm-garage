@@ -3,87 +3,158 @@
 namespace App\Http\Controllers;
 
 use App\Models\Service;
+use App\Models\ServiceAdditional;
+use App\Models\AdditionalType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ServiceController extends Controller
 {
-    /**
-     * Tampilkan daftar semua layanan (services).
-     */
-    public function index(): Response
+    public function index()
     {
-        $services = Service::all();
-        return Inertia::render('Services/Index', [
-            'services' => $services
-        ]);
+        $services = Service::with('additionals.additionalType')->get();
+        return Inertia::render('Services/Index', ['services' => $services]);
     }
 
-    /**
-     * Tampilkan halaman tambah layanan.
-     */
-    public function create(): Response
+    public function create()
     {
-        return Inertia::render('Services/Create');
+        $additionalTypes = AdditionalType::all();
+        return Inertia::render('Services/Create', ['additionalTypes' => $additionalTypes]);
     }
 
-    /**
-     * Simpan layanan baru ke database.
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'service_name' => 'required|string|max:100',
+            'service_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'base_price' => 'required|numeric|min:0',
+            'additionals' => 'nullable|array',
+            'additionals.*.additional_type_id' => 'nullable|exists:additional_types,id',
+            'additionals.*.new_type' => 'nullable|string|max:255',
+            'additionals.*.name' => 'required_with:additionals|string',
+            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'additionals.*.additional_price' => 'nullable|numeric|min:0',
         ]);
 
-        Service::create([
+        $service = Service::create([
             'service_name' => $request->service_name,
             'description' => $request->description,
             'base_price' => $request->base_price,
         ]);
 
-        return redirect()->route('services.index')->with('success', 'Layanan berhasil ditambahkan.');
+        if ($request->has('additionals')) {
+            foreach ($request->additionals as $index => $additional) {
+                $additionalTypeId = $additional['additional_type_id'];
+                if (!$additionalTypeId && $additional['new_type']) {
+                    $newType = AdditionalType::firstOrCreate(['name' => $additional['new_type']]);
+                    $additionalTypeId = $newType->id;
+                }
+
+                $imagePath = null;
+                if ($request->hasFile("additionals.{$index}.image")) {
+                    $imagePath = $request->file("additionals.{$index}.image")->store('service_additionals', 'public');
+                }
+
+                ServiceAdditional::create([
+                    'service_id' => $service->id,
+                    'additional_type_id' => $additionalTypeId,
+                    'name' => $additional['name'],
+                    'image_path' => $imagePath,
+                    'additional_price' => $additional['additional_price'] ?? 0,
+                ]);
+            }
+        }
+
+        return redirect()->route('services.index')->with('success', 'Service created successfully.');
     }
 
-    /**
-     * Tampilkan halaman edit layanan.
-     */
-    public function edit(Service $service): Response
+    public function edit($id)
     {
+        $service = Service::with('additionals.additionalType')->findOrFail($id);
+        $additionalTypes = AdditionalType::all();
+        Log::info('Service data for edit:', [
+            'id' => $service->id,
+            'service_name' => $service->service_name,
+            'description' => $service->description,
+            'base_price' => $service->base_price,
+            'additionals' => $service->additionals->toArray(),
+        ]);
         return Inertia::render('Services/Edit', [
-            'service' => $service
+            'service' => $service,
+            'additionalTypes' => $additionalTypes,
         ]);
     }
 
-    /**
-     * Update layanan yang ada.
-     */
-    public function update(Request $request, Service $service)
+    public function update(Request $request, $id)
     {
-        $request->validate([
-            'service_name' => 'required|string|max:100',
+        Log::info('Update request received:', [
+            'inputs' => $request->all(),
+            'files' => $request->allFiles(),
+        ]);
+
+        $validated = $request->validate([
+            'service_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'base_price' => 'required|numeric|min:0',
+            'additionals' => 'nullable|array',
+            'additionals.*.id' => 'nullable|exists:service_additionals,id',
+            'additionals.*.additional_type_id' => 'nullable|exists:additional_types,id',
+            'additionals.*.name' => 'required|string|max:255',
+            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'additionals.*.image_path' => 'nullable|string',
+            'additionals.*.additional_price' => 'nullable|numeric|min:0',
         ]);
 
+        Log::info('Validated data:', $validated);
+
+        $service = Service::findOrFail($id);
         $service->update([
-            'service_name' => $request->service_name,
-            'description' => $request->description,
-            'base_price' => $request->base_price,
+            'service_name' => $validated['service_name'],
+            'description' => $validated['description'],
+            'base_price' => $validated['base_price'],
         ]);
 
-        return redirect()->route('services.index')->with('success', 'Layanan berhasil diperbarui.');
-    }
+        if ($request->has('additionals')) {
+            $existingIds = array_filter(array_column($request->additionals, 'id'));
+            ServiceAdditional::where('service_id', $service->id)
+                ->whereNotIn('id', $existingIds)
+                ->delete();
 
-    /**
-     * Hapus layanan dari database.
-     */
-    public function destroy(Service $service)
-    {
-        $service->delete();
-        return redirect()->route('services.index')->with('success', 'Layanan berhasil dihapus.');
+            foreach ($request->additionals as $index => $additional) {
+                $existingAdditional = !empty($additional['id'])
+                    ? ServiceAdditional::find($additional['id'])
+                    : null;
+
+                $imagePath = $additional['image_path'] ?? ($existingAdditional ? $existingAdditional->image_path : null);
+                if ($request->hasFile("additionals.{$index}.image")) {
+                    if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                        Storage::disk('public')->delete($imagePath);
+                    }
+                    $imagePath = $request->file("additionals.{$index}.image")
+                        ->store('service_additionals', 'public');
+                }
+
+                $data = [
+                    'service_id' => $service->id,
+                    'additional_type_id' => $additional['additional_type_id'] ?? ($existingAdditional ? $existingAdditional->additional_type_id : null),
+                    'name' => $additional['name'] ?? ($existingAdditional ? $existingAdditional->name : ''),
+                    'image_path' => $imagePath,
+                    'additional_price' => $additional['additional_price'] ?? ($existingAdditional ? $existingAdditional->additional_price : 0),
+                ];
+
+                if ($existingAdditional) {
+                    $existingAdditional->update($data);
+                } else {
+                    ServiceAdditional::create($data);
+                }
+            }
+        } else {
+            ServiceAdditional::where('service_id', $service->id)->delete();
+        }
+
+        return redirect()->route('services.index')
+            ->with('success', 'Service updated successfully.');
     }
 }

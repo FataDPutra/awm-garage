@@ -16,4 +16,8 @@ class Service extends Model
     {
         return $this->hasMany(PurchaseRequest::class);
     }
+    public function additionals()
+    {
+        return $this->hasMany(ServiceAdditional::class);
+    }
 }

@@ -6,6 +6,7 @@ export default function Show() {
     const { order } = usePage().props;
     const [completedPhoto, setCompletedPhoto] = useState([]);
     const [revisedPhoto, setRevisedPhoto] = useState([]);
+    const [trackingNumber, setTrackingNumber] = useState("");
 
     const handlePhotoChange = (e) => {
         const files = Array.from(e.target.files);
@@ -33,17 +34,39 @@ export default function Show() {
         setRevisedPhoto((prev) => prev.filter((_, i) => i !== index));
     };
 
-    // Fungsi Konfirmasi Barang Diterima oleh Admin
     const handleConfirmReceived = () => {
         Inertia.post(`/admin/orders/${order.order_id}/confirm-received`);
     };
 
-    // Fungsi Menandai Pesanan Siap Dikirim
     const handleMarkAsReadyToShip = () => {
         Inertia.post(`/admin/orders/${order.order_id}/ready-to-ship`);
     };
 
-    // Fungsi Upload Completed Photo
+    // [CHANGED] Fungsi untuk Membuat Pengiriman dengan Nomor Resi
+    const handleCreateShipment = (e) => {
+        e.preventDefault();
+        Inertia.post(
+            `/admin/orders/${order.order_id}/create-shipment`,
+            {
+                tracking_number: trackingNumber,
+            },
+            {
+                onSuccess: () => {
+                    alert("Pengiriman berhasil dibuat!");
+                    setTrackingNumber(""); // Reset field setelah sukses
+                },
+                onError: (errors) => {
+                    alert(
+                        "Gagal membuat pengiriman: " +
+                            (errors.tracking_number ||
+                                errors.message ||
+                                "Unknown error")
+                    );
+                },
+            }
+        );
+    };
+
     const handleUploadCompletedPhoto = (e) => {
         e.preventDefault();
         if (completedPhoto.length === 0)
@@ -51,7 +74,7 @@ export default function Show() {
 
         const formData = new FormData();
         completedPhoto.forEach((photo) => {
-            formData.append("completed_photo[]", photo.file); // Pastikan key-nya benar
+            formData.append("completed_photo[]", photo.file);
         });
 
         Inertia.post(
@@ -60,7 +83,7 @@ export default function Show() {
             {
                 onSuccess: () => {
                     alert("Foto hasil pengerjaan berhasil diunggah!");
-                    setCompletedPhoto([]); // Kosongkan setelah upload
+                    setCompletedPhoto([]);
                 },
                 onError: (errors) => {
                     alert("Gagal mengunggah foto: " + errors.completedPhoto);
@@ -76,7 +99,7 @@ export default function Show() {
 
         const formData = new FormData();
         revisedPhoto.forEach((photo) => {
-            formData.append("revised_photo[]", photo.file); // Pastikan key-nya benar
+            formData.append("revised_photo[]", photo.file);
         });
 
         Inertia.post(
@@ -85,7 +108,7 @@ export default function Show() {
             {
                 onSuccess: () => {
                     alert("Foto hasil pengerjaan berhasil diunggah!");
-                    setRevisedPhoto([]); // Kosongkan setelah upload
+                    setRevisedPhoto([]);
                 },
                 onError: (errors) => {
                     alert("Gagal mengunggah foto: " + errors.revisedPhoto);
@@ -93,28 +116,6 @@ export default function Show() {
             }
         );
     };
-
-    // const handleUploadAdditionalPhoto = (e) => {
-    //     e.preventDefault();
-    //     if (!revisedPhoto)
-    //         return alert("Silakan pilih gambar terlebih dahulu!");
-
-    //     const formData = new FormData();
-    //     formData.append("revised_photo", revisedPhoto);
-
-    //     Inertia.post(
-    //         `/admin/orders/${order.order_id}/upload-revision-photo`,
-    //         formData,
-    //         {
-    //             onSuccess: () => {
-    //                 alert("Foto revisi berhasil diunggah!");
-    //             },
-    //             onError: (errors) => {
-    //                 alert("Gagal mengunggah foto: " + errors.revised_photo);
-    //             },
-    //         }
-    //     );
-    // };
 
     return (
         <div className="p-6 bg-white shadow rounded">
@@ -138,16 +139,6 @@ export default function Show() {
                 <strong>Status:</strong> {order.status}
             </p>
 
-            {/* {order.completed_photo_path && (
-                <div className="mt-4">
-                    <h2 className="text-xl font-semibold">Hasil Pengerjaan:</h2>
-                    <img
-                        src={`/storage/${order.completed_photo_path}`}
-                        alt="Completed Work"
-                        className="w-64 h-64 object-cover mt-2 border rounded-lg"
-                    />
-                </div>
-            )} */}
             {order.completed_photo_path && (
                 <p>
                     <strong>Hasil Pengerjaan </strong>
@@ -173,7 +164,6 @@ export default function Show() {
                     />
                 ))}
 
-            {/* Form Upload Foto Hasil Pengerjaan (Hanya jika status "processing") */}
             {order.status === "processing" && (
                 <form onSubmit={handleUploadCompletedPhoto} className="mt-4">
                     <label className="block mb-2 font-medium">
@@ -186,7 +176,6 @@ export default function Show() {
                         onChange={handlePhotoChange}
                         className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50"
                     />
-
                     {completedPhoto.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
                             {completedPhoto.map((photo, index) => (
@@ -207,7 +196,6 @@ export default function Show() {
                             ))}
                         </div>
                     )}
-
                     <button
                         type="submit"
                         className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
@@ -217,36 +205,17 @@ export default function Show() {
                 </form>
             )}
 
-            {/* {order.revised_photo_path &&
-                (Array.isArray(order.revised_photo_path) ? (
-                    order.revised_photo_path.map((photo, index) => (
-                        <div className="mb-4" key={index}>
-                            <img
-                                src={`/storage/${photo}`}
-                                alt={`Revised ${index}`}
-                                className="w-16 h-16 object-cover rounded border"
-                            />
-                        </div>
-                    ))
-                ) : (
-                    <img
-                        src={`/storage/${order.revised_photo_path}`}
-                        alt="Revised"
-                        className="w-full max-w-md rounded shadow-md"
-                    />
-                ))} */}
-
             {order.complains &&
                 order.complains.map(
                     (complain, index) =>
                         complain.revised_photo_path && (
                             <div className="mb-4" key={index}>
-                                {/* Tampilkan Customer Feedback jika ada */}
                                 {complain.customer_feedback && (
                                     <>
                                         <p>
-                                            <strong>Perubahan</strong>{" "}
-                                            {index + 1}
+                                            <strong>
+                                                Perubahan {index + 1}
+                                            </strong>
                                         </p>
                                         <p>
                                             <strong>Customer Feedback:</strong>{" "}
@@ -254,10 +223,7 @@ export default function Show() {
                                         </p>
                                     </>
                                 )}
-
-                                {/* Tampilkan Revised Photo jika ada */}
                                 {Array.isArray(complain.revised_photo_path) ? (
-                                    // Jika revised_photo_path adalah array, tampilkan semua foto
                                     complain.revised_photo_path.map(
                                         (photo, photoIndex) => (
                                             <img
@@ -269,7 +235,6 @@ export default function Show() {
                                         )
                                     )
                                 ) : (
-                                    // Jika revised_photo_path bukan array, tampilkan satu foto
                                     <img
                                         src={`/storage/${complain.revised_photo_path}`}
                                         alt="Revised"
@@ -281,7 +246,7 @@ export default function Show() {
                 )}
 
             {order.status === "customer_complain" &&
-                order.customer_confirmation == "rejected" && (
+                order.customer_confirmation === "rejected" && (
                     <>
                         <div className="mt-4 p-4 bg-red-100 rounded">
                             <h2 className="text-lg font-semibold text-red-600">
@@ -342,7 +307,76 @@ export default function Show() {
                     </>
                 )}
 
-            {/* Tombol Konfirmasi Penerimaan Barang */}
+            {order.shipping && (
+                <div className="mt-4 p-4 border rounded bg-gray-100">
+                    <h3 className="font-bold">Informasi Pengiriman</h3>
+                    <p>
+                        <strong>Kurir:</strong> {order.shipping.courier_code} -{" "}
+                        {order.shipping.courier_name} -{" "}
+                        {order.shipping.courier_service}{" "}
+                    </p>
+                    <p>
+                        <strong>Nomor Resi:</strong>{" "}
+                        {order.shipping.tracking_number || "Belum Ditambahkan"}
+                    </p>
+                    <p>
+                        <strong>Tanggal Pengiriman:</strong>{" "}
+                        {order.shipping.shipping_date || "Belum Dikirim"}
+                    </p>
+                    <p>
+                        <strong>Tanggal Diterima:</strong>{" "}
+                        {order.shipping.received_date || "Belum Diterima"}
+                    </p>
+                    <p>
+                        <strong>Status Pengiriman:</strong>{" "}
+                        {order.shipping.status === "in_transit"
+                            ? "Dalam Pengiriman"
+                            : "Diterima"}
+                    </p>
+                    <p>
+                        <strong>Penerima:</strong>{" "}
+                        {order.offer_price.purchase_request.user.full_name}{" "}
+                        <br />
+                        <strong>Alamat Penerima:</strong> <br />
+                        {order.offer_price.purchase_request.user.phone} <br />
+                        {
+                            order.offer_price.purchase_request
+                                .destination_address.address
+                        }{" "}
+                        <br />
+                        {
+                            order.offer_price.purchase_request
+                                .destination_address.subdistrict_name
+                        }
+                        ,{" "}
+                        {
+                            order.offer_price.purchase_request
+                                .destination_address.district_name
+                        }{" "}
+                        <br />
+                        {
+                            order.offer_price.purchase_request
+                                .destination_address.city_name
+                        }
+                        ,{" "}
+                        {
+                            order.offer_price.purchase_request
+                                .destination_address.province_name
+                        }{" "}
+                        <br />
+                        {
+                            order.offer_price.purchase_request
+                                .destination_address.zip_code
+                        }{" "}
+                        <br />
+                        {
+                            order.offer_price.purchase_request
+                                .destination_address.address_details
+                        }
+                    </p>
+                </div>
+            )}
+
             {order.status === "waiting_for_admin_confirmation" && (
                 <>
                     <div className="mt-4">
@@ -356,7 +390,6 @@ export default function Show() {
                             className="w-64 h-64 object-cover mt-2 border rounded-lg"
                         />
                     </div>
-
                     <button
                         onClick={handleConfirmReceived}
                         className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
@@ -366,14 +399,34 @@ export default function Show() {
                 </>
             )}
 
-            {/* Tombol Siap Dikirim */}
-            {order.status === "waiting_for_payment" && (
-                <button
-                    onClick={handleMarkAsReadyToShip}
-                    className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
+            {/* [CHANGED] Form untuk Membuat Pengiriman dengan Nomor Resi */}
+            {order.status === "waiting_for_shipment" && (
+                <form
+                    onSubmit={handleCreateShipment}
+                    className="mt-4 p-4 bg-gray-100 rounded"
                 >
-                    Tandai Siap Dikirim
-                </button>
+                    <h2 className="text-lg font-semibold mb-2">
+                        Buat Pengiriman
+                    </h2>
+                    <label className="block mb-2">
+                        <span className="text-gray-700">
+                            Nomor Resi (Opsional):
+                        </span>
+                        <input
+                            type="text"
+                            value={trackingNumber}
+                            onChange={(e) => setTrackingNumber(e.target.value)}
+                            className="w-full p-2 border rounded"
+                            placeholder="Masukkan nomor resi pengiriman"
+                        />
+                    </label>
+                    <button
+                        type="submit"
+                        className="mt-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                    >
+                        Create Shipment
+                    </button>
+                </form>
             )}
         </div>
     );
