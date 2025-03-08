@@ -157,4 +157,13 @@ class ServiceController extends Controller
         return redirect()->route('services.index')
             ->with('success', 'Service updated successfully.');
     }
+
+    public function destroy($id)
+    {
+        $service = Service::findOrFail($id);
+        $service->delete(); // Soft delete service
+
+        return redirect()->route('services.index')
+            ->with('success', 'Service deleted successfully.');
+    }
 }

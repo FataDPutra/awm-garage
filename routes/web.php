@@ -12,6 +12,8 @@ use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\OfferPriceController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\AdditionalTypeController;
+use App\Http\Controllers\DashboardController;
+
 
 
 
@@ -33,10 +35,11 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/locations', [LocationController::class, 'search'])->name('locations.search');
 
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
-
+    // Route::get('/dashboard', function () {
+    //     return Inertia::render('Dashboard');
+    // })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
     // Profil pengguna
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -70,6 +73,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/orders/{order_id}/confirm', [OrderController::class, 'confirmCustomerOrder'])->name('orders.confirm');
 
         Route::post('/orders/{order_id}/confirm-received-customer', [ShippingController::class, 'confirmReceivedCustomer'])->name('orders.confirm-received-customer');
+
+        Route::post('/orders/{order_id}/review', [ShippingController::class, 'storeReview'])->name('orders.review');
 
     });
 

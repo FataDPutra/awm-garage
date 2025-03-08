@@ -41,4 +41,8 @@ class Order extends Model
     {
         return $this->hasOne(Shipping::class, 'order_id');
     }
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'order_id', 'order_id');
+    }
 }

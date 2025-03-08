@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->decimal('base_price', 12, 2);
             $table->timestamps();
+            $table->softDeletes(); 
         });
     }
 

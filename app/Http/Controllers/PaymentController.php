@@ -76,7 +76,6 @@ class PaymentController extends Controller
     ]);
 }
 
-
 public function storeFull(Request $request)
 {
     $request->validate([

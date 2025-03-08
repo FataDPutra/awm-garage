@@ -194,7 +194,8 @@ public function showCustomer($order_id)
             'offerPrice.purchaseRequest.service', 
             'offerPrice.purchaseRequest.user',
             'complains',
-            'shipping'
+            'shipping',
+            'reviews'
         ])
         ->whereHas('offerPrice.purchaseRequest', function ($query) use ($user) {
             $query->where('user_id', $user->id);
@@ -290,5 +291,6 @@ public function confirmCustomerOrder(Request $request, $order_id)
 
     return redirect()->route('orders-customer.show', $order_id)->with('success', 'Konfirmasi berhasil disimpan.');
 }
+
 
 }

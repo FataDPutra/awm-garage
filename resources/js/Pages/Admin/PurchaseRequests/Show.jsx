@@ -395,7 +395,7 @@ export default function Show({ purchaseRequest }) {
                             {data.estimation_days &&
                                 data.shipping_to_customer_selection?.etd && (
                                     <p className="text-gray-500">
-                                        Total Estimated Delivery:{" "}
+                                        Total Estimated + Delivery:{" "}
                                         {getTotalEstimatedDays(
                                             data.estimation_days,
                                             data.shipping_to_customer_selection
@@ -533,7 +533,7 @@ export default function Show({ purchaseRequest }) {
                             {purchaseRequest.offer_price
                                 .shipping_to_customer_details?.etd && (
                                 <span>
-                                    {" (Total: " +
+                                    {" (Total:" +
                                         getTotalEstimatedDays(
                                             purchaseRequest.offer_price
                                                 .estimation_days,
