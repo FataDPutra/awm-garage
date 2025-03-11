@@ -151,6 +151,19 @@ export default function UpdateProfileInformation({
                         autoComplete="tel"
                     />
                     <InputError className="mt-2" message={errors.phone} />
+                    {data.phone && (
+                        <p
+                            className={`mt-2 text-sm ${
+                                user.phone_verified_at
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                            }`}
+                        >
+                            {user.phone_verified_at
+                                ? "Nomor ini sudah diverifikasi untuk WhatsApp."
+                                : "Nomor ini belum diverifikasi."}
+                        </p>
+                    )}
                 </div>
 
                 {/* Location Search */}

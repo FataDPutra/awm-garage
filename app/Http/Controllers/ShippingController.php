@@ -35,8 +35,6 @@ class ShippingController extends Controller
         ]);
     }
 
- 
-
     // Admin menginput data pengiriman
     public function store(Request $request, $order_id)
     {
@@ -75,7 +73,6 @@ class ShippingController extends Controller
 
         return redirect()->route('shippings.index')->with('success', 'Pesanan telah diterima oleh kustomer.');
     }
-
 
      public function createShipment(Request $request, $order_id)
     {

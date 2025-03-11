@@ -13,6 +13,9 @@ use App\Http\Controllers\OfferPriceController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\AdditionalTypeController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\OTPController;
+
 
 
 
@@ -39,6 +42,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //     return Inertia::render('Dashboard');
     // })->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::post('/profile/send-otp', [ProfileController::class, 'sendOtp'])->name('profile.sendOtp');
+    Route::post('/profile/verify-otp', [ProfileController::class, 'verifyOtp'])->name('profile.verifyOtp');
     
     // Profil pengguna
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -48,7 +54,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // ✅ Middleware untuk membedakan Admin dan Customer
 Route::middleware(['auth'])->group(function () {
-    
     // ✅ Routes untuk **Customer** (Hanya Customer yang bisa mengakses)
     Route::middleware(['role:customer'])->group(function () {
 
@@ -74,15 +79,15 @@ Route::middleware(['auth'])->group(function () {
 
         Route::post('/orders/{order_id}/confirm-received-customer', [ShippingController::class, 'confirmReceivedCustomer'])->name('orders.confirm-received-customer');
 
-        Route::post('/orders/{order_id}/review', [ShippingController::class, 'storeReview'])->name('orders.review');
+        Route::post('/orders/{order_id}/review', [ReviewController::class, 'storeReview'])->name('orders.review');
 
     });
 
     // ✅ Routes untuk **Admin** (Hanya Admin yang bisa mengakses)
     Route::middleware(['role:admin'])->group(function () {
         // Admin - Purchase Request
-        Route::get('/admin/purchase-requests', [PurchaseRequestController::class, 'adminIndex'])->name('purchase_requests.admin_index');
-        Route::post('/offer-prices/{pr_id}', [OfferPriceController::class, 'store'])->name('offer_prices.store');
+        // Route::get('/admin/purchase-requests', [PurchaseRequestController::class, 'adminIndex'])->name('purchase_requests.admin_index');
+        // Route::post('/offer-prices/{pr_id}', [OfferPriceController::class, 'store'])->name('offer_prices.store');
 
         // Admin - Orders
         // Halaman daftar pesanan
@@ -123,8 +128,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/purchaserequests', [PurchaseRequestController::class, 'adminIndex'])->name('admin.purchaserequests.index');
         Route::get('/purchaserequests/show/{id}', [PurchaseRequestController::class, 'showAdmin'])->name('admin.purchaserequests.show');
-        Route::post('/purchaserequests/{id}/offer', [PurchaseRequestController::class, 'storeOfferPrice'])->name('admin.purchaserequests.offer');
-        Route::put('/admin/purchase-requests/{id}/update-offer', [PurchaseRequestController::class, 'updateOfferPrice'])->name('admin.purchaserequests.update_offer');
+        
+        Route::post('/purchaserequests/{id}/offer', [OfferPriceController::class, 'storeOfferPrice'])->name('admin.purchaserequests.offer');        
+        Route::put('/admin/purchase-requests/{id}/update-offer', [OfferPriceController::class, 'updateOfferPrice'])->name('admin.purchaserequests.update_offer');
     });
     // [CHANGED] Menambahkan rute untuk calculate shipping yang sebelumnya hilang
     Route::post('/calculate-shipping', [PurchaseRequestController::class, 'calculateShippingCost'])->name('calculate.shipping');

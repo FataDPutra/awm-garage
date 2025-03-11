@@ -31,7 +31,7 @@ class User extends Authenticatable
         'address_details',
         'latitude',
         'longitude',
-
+        'phone_verified_at',
     ];
 
     /**

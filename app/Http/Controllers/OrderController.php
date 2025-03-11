@@ -81,32 +81,6 @@ public function uploadCompletedPhoto(Request $request, $order_id)
     return redirect()->route('orders.index')->with('success', 'Foto hasil pengerjaan telah diunggah.');
 }
 
-
-
-// public function uploadRevisionPhoto(Request $request, $order_id)
-// {
-//     $request->validate([
-//         'revised_photo.*' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-//     ]);
-
-//     $order = Order::where('order_id', $order_id)->firstOrFail();
-//     $existingPhotos = $order->revised_photo_path ?? [];
-
-//     if ($request->hasFile('revised_photo')) {
-//         foreach ($request->file('revised_photo') as $file) {
-//             $path = $file->store('revised_photos', 'public');
-//             $existingPhotos[] = $path;
-//         }
-
-//         // Update ke database dengan format JSON
-//         $order->update([
-//             'revised_photo_path' => $existingPhotos, // Bisa langsung array karena kolom JSON
-//             'status' => 'waiting_for_cust_confirmation',
-//             'customer_confirmation' => 'pending',
-//         ]);
-//     }
-//     return back()->with('success', 'Foto revisi berhasil diunggah.');
-// }
 public function uploadRevisionPhoto(Request $request, $order_id)
 {
     $request->validate([
@@ -148,9 +122,7 @@ public function uploadRevisionPhoto(Request $request, $order_id)
     return back()->with('success', 'Foto revisi berhasil diunggah.');
 }
 
-
-
-    // Mengubah status menjadi "Siap Dikirim"
+// Mengubah status menjadi "Siap Dikirim"
     public function markAsReadyToShip($order_id)
     {
         $order = Order::where('order_id', $order_id)->firstOrFail();
@@ -234,31 +206,6 @@ public function confirmShipmentCustomer(Request $request, $order_id)
 
     return redirect()->back()->with('success', 'Pengiriman barang telah dikonfirmasi.');
 }
-
-    // public function confirmCustomerOrder(Request $request, $order_id)
-    // {
-    //     $request->validate([
-    //         'customer_confirmation' => 'required|in:approved,rejected',
-    //         'customer_feedback' => 'nullable|string|max:500',
-    //     ]);
-
-    //     $order = Order::where('order_id', $order_id)->firstOrFail();
-
-    //     if ($request->customer_confirmation === 'approved') {
-    //         $order->update([
-    //             'customer_confirmation' => 'approved',
-    //             'status' => 'waiting_for_payment'
-    //         ]);
-    //     } else {
-    //         $order->update([
-    //             'customer_confirmation' => 'rejected',
-    //             'customer_feedback' => $request->customer_feedback,
-    //             'status' => 'customer_complain'
-    //         ]);
-    //     }
-    //     return redirect()->route('orders-customer.show', $order_id)->with('success', 'Konfirmasi berhasil disimpan.');
-        
-    // }
 
 public function confirmCustomerOrder(Request $request, $order_id)
 {
