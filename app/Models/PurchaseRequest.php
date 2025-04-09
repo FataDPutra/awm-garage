@@ -44,7 +44,7 @@ class PurchaseRequest extends Model
 
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(Service::class)->withTrashed(); // Izinkan akses service yang sudah di-soft delete
     }
 
     public function offerPrice(): HasOne

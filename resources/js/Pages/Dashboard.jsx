@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, usePage } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import QueueCard from "@/Components/QueueCard";
+import { Home } from "lucide-react";
 
 export default function Dashboard({ auth, orders }) {
     const [queue, setQueue] = useState([]);
+    const { url } = usePage();
 
-    // Fungsi untuk menghitung estimasi selesai (tetap sama)
     const calculateEstimatedCompletion = (
         createdAt,
         shippingDaysToAdmin,
@@ -28,7 +30,6 @@ export default function Dashboard({ auth, orders }) {
         });
     };
 
-    // useEffect untuk filter orders (tetap sama)
     useEffect(() => {
         if (orders) {
             const activeOrders = orders.filter(
@@ -51,160 +52,73 @@ export default function Dashboard({ auth, orders }) {
     if (!auth || !auth.user) {
         return (
             <AuthenticatedLayout>
-                <Head title="Dashboard" />
-                <div className="p-4 sm:p-6">
-                    <p className="text-red-500 text-center">
-                        Data pengguna tidak tersedia. Silakan login kembali.
-                    </p>
-                    <Link
-                        href="/login"
-                        className="block text-center text-blue-600 hover:underline mt-2"
-                    >
-                        Kembali ke Login
-                    </Link>
+                <Head title="Home">
+                    <meta
+                        name="viewport"
+                        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+                    />
+                </Head>
+                <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
+                    <div className="bg-white p-8 rounded-lg shadow-md text-center transition-all hover:shadow-lg">
+                        <p className="text-red-600 font-semibold mb-4">
+                            Data pengguna tidak tersedia. Silakan login kembali.
+                        </p>
+                        <Link
+                            href="/login"
+                            className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                        >
+                            Kembali ke Login
+                        </Link>
+                    </div>
                 </div>
             </AuthenticatedLayout>
         );
     }
 
-    const userName = auth.user.full_name || "Pengguna Tanpa Nama";
     const userRole = auth.user.role || "unknown";
 
     return (
-        <AuthenticatedLayout>
-            <Head title="Dashboard" />
-            <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-                {/* Header */}
-                <h1 className="text-xl sm:text-2xl font-bold mb-4">
-                    Welcome, {userName}!
-                </h1>
-
-                {/* Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                    {userRole === "customer" ? (
-                        <>
-                            <Link
-                                href="/purchase-requests"
-                                className="btn-primary w-full sm:w-auto text-center py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                            >
-                                Buat Purchase Request
-                            </Link>
-                            <Link
-                                href="/orders"
-                                className="btn-secondary w-full sm:w-auto text-center py-2 px-4 rounded-md bg-gray-600 text-white hover:bg-gray-700"
-                            >
-                                Lihat Pesanan
-                            </Link>
-                        </>
-                    ) : (
-                        <>
-                            <Link
-                                href="/purchaserequests"
-                                className="btn-primary w-full sm:w-auto text-center py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                            >
-                                Kelola Purchase Requests
-                            </Link>
-                            <Link
-                                href="/admin/orders"
-                                className="btn-secondary w-full sm:w-auto text-center py-2 px-4 rounded-md bg-gray-600 text-white hover:bg-gray-700"
-                            >
-                                Kelola Orders
-                            </Link>
-                            <Link
-                                href="/services"
-                                className="btn-secondary w-full sm:w-auto text-center py-2 px-4 rounded-md bg-gray-600 text-white hover:bg-gray-700"
-                            >
-                                Kelola Layanan
-                            </Link>
-                        </>
-                    )}
-                </div>
-
-                {/* Queue Section */}
-                <div>
-                    <h2 className="text-lg sm:text-xl font-semibold mb-2">
-                        Antrian Pesanan Saat Ini
+        <AuthenticatedLayout
+            header={
+                <h2 className="text-3xl font-bold text-blue-600 flex items-center animate-fade-in animate-pulse">
+                    <Home size={28} className="mr-2 animate-bounce-subtle" />
+                    Dashboard
+                </h2>
+            }
+        >
+            <Head title="Dashboard">
+                <meta
+                    name="viewport"
+                    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+                />
+            </Head>
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <section className="bg-white rounded-lg shadow-md p-6">
+                    <h2 className="text-xl font-semibold text-blue-600 mb-2">
+                        Antrian Pesanan
                     </h2>
-                    <p className="text-gray-600 text-sm mb-4">
-                        *Estimasi pengerjaan dihitung berdasarkan hari kerja
-                        (Senin-Sabtu).
+                    <p className="text-sm text-gray-500 mb-4">
+                        *Estimasi dihitung berdasarkan hari kerja (Senin-Sabtu)
                     </p>
 
                     {queue.length === 0 ? (
-                        <p className="text-gray-600 text-center py-4">
-                            Tidak ada pesanan dalam antrian saat ini.
-                        </p>
+                        <div className="text-center py-10 text-gray-500">
+                            <p className="text-lg font-medium">
+                                Tidak ada pesanan dalam antrian
+                            </p>
+                        </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-100">
-                                    <tr>
-                                        <th className="p-3 hidden sm:table-cell">
-                                            No. Antrian
-                                        </th>
-                                        <th className="p-3">Order ID</th>
-                                        <th className="p-3 hidden md:table-cell">
-                                            Pemesan
-                                        </th>
-                                        <th className="p-3">Layanan</th>
-                                        <th className="p-3 hidden sm:table-cell">
-                                            Status
-                                        </th>
-                                        <th className="p-3 hidden lg:table-cell">
-                                            Tanggal Pesan
-                                        </th>
-                                        <th className="p-3">Estimasi</th>
-                                        {userRole !== "customer" && (
-                                            <th className="p-3">Aksi</th>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {queue.map((order) => (
-                                        <tr
-                                            key={order.order_id}
-                                            className="border-b hover:bg-gray-50"
-                                        >
-                                            <td className="p-3 hidden sm:table-cell">
-                                                {order.queue_number}
-                                            </td>
-                                            <td className="p-3">
-                                                {order.order_id}
-                                            </td>
-                                            <td className="p-3 hidden md:table-cell">
-                                                {order.username}
-                                            </td>
-                                            <td className="p-3">
-                                                {order.service_name}
-                                            </td>
-                                            <td className="p-3 hidden sm:table-cell">
-                                                {order.status}
-                                            </td>
-                                            <td className="p-3 hidden lg:table-cell">
-                                                {new Date(
-                                                    order.created_at
-                                                ).toLocaleDateString("id-ID")}
-                                            </td>
-                                            <td className="p-3">
-                                                {order.estimated_completion}
-                                            </td>
-                                            {userRole !== "customer" && (
-                                                <td className="p-3">
-                                                    <Link
-                                                        href={`/orders/${order.order_id}`}
-                                                        className="text-blue-600 hover:underline"
-                                                    >
-                                                        Detail
-                                                    </Link>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="space-y-4">
+                            {queue.map((order) => (
+                                <QueueCard
+                                    key={order.order_id}
+                                    order={order}
+                                    userRole={userRole}
+                                />
+                            ))}
                         </div>
                     )}
-                </div>
+                </section>
             </div>
         </AuthenticatedLayout>
     );

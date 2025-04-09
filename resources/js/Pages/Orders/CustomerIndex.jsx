@@ -1,42 +1,56 @@
-import { Link, usePage } from "@inertiajs/react";
-import React from "react";
+import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Package } from "lucide-react";
+import StatusSelector from "@/Components/StatusSelector";
+import StatusIndicator from "@/Components/StatusIndicator";
+import OrderTable from "@/Components/OrderTable";
+import OrderList from "@/Components/OrderList";
 
-export default function CustomerIndex() {
+export default function CustomerIndex({ auth }) {
     const { orders } = usePage().props;
+    const [selectedStatus, setSelectedStatus] = useState("all");
+
+    const filteredOrders =
+        selectedStatus === "all"
+            ? orders
+            : orders.filter((order) => order.status === selectedStatus);
+
     return (
-        <div className="container mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-4">Daftar Pesanan Anda</h1>
-            <div className="bg-white shadow rounded-lg p-4">
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-gray-200">
-                            <th className="p-3">Order ID</th>
-                            <th className="p-3">Status</th>
-                            <th className="p-3">Total Harga</th>
-                            <th className="p-3">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {orders.map((order) => (
-                            <tr key={order.order_id} className="border-t">
-                                <td className="p-3">{order.order_id}</td>
-                                <td className="p-3">{order.status}</td>
-                                <td className="p-3">
-                                    Rp {order.offer_price.total_price}
-                                </td>
-                                <td className="p-3">
-                                    <Link
-                                        href={`/orders/${order.order_id}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        Lihat Detail
-                                    </Link>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+        <AuthenticatedLayout
+            auth={auth}
+            header={
+                <div className="flex items-center gap-3 animate-pulse">
+                    <Package size={28} className="text-blue-500" />
+                    <h2 className="text-3xl font-bold text-blue-600">
+                        Daftar Pesanan Anda
+                    </h2>
+                </div>
+            }
+        >
+            <div className="container mx-auto px-6 py-6 max-w-7xl">
+                <StatusSelector
+                    selectedStatus={selectedStatus}
+                    setSelectedStatus={setSelectedStatus}
+                />
+                <StatusIndicator selectedStatus={selectedStatus} />
+                <div className="bg-white shadow rounded-lg">
+                    <div className="hidden sm:block p-4">
+                        <OrderTable
+                            orders={filteredOrders}
+                            linkPrefix="/orders"
+                            showCustomerColumn={false}
+                        />
+                    </div>
+                    <div className="block sm:hidden">
+                        <OrderList
+                            orders={filteredOrders}
+                            linkPrefix="/orders"
+                            showCustomerColumn={false}
+                        />
+                    </div>
+                </div>
             </div>
-        </div>
+        </AuthenticatedLayout>
     );
 }

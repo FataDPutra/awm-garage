@@ -20,29 +20,71 @@ class PurchaseRequestController extends Controller
 {
     private $allCouriers = 'jne:sicepat:ide:sap:jnt:ninja:tiki:lion:anteraja:pos:ncs:rex:rpx:sentral:star:wahana:dse';
 
-    public function index()
-    {
-        $user = Auth::user();
+    /**
+ * Mengirim notifikasi WhatsApp berdasarkan status PurchaseRequest jika nomor terverifikasi
+ */
+private function sendStatusNotification($purchaseRequest, $statusMessage)
+{
+    $user = $purchaseRequest->user;
 
-        $purchaseRequests = PurchaseRequest::with('service', 'offerPrice')
-            ->when($user->role === 'customer', function ($query) use ($user) {
-                return $query->where('user_id', $user->id);
-            })
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return Inertia::render('PurchaseRequests/Index', [
-            'purchaseRequests' => $purchaseRequests
-        ]);
+    // Hanya kirim notifikasi jika nomor telepon sudah diverifikasi
+    if (!$user->phone_verified_at) {
+        \Log::info('Notifikasi tidak dikirim karena nomor belum diverifikasi', ['user_id' => $user->id]);
+        return;
     }
 
+    $userkey = env('ZENZIVA_USERKEY');
+    $passkey = env('ZENZIVA_PASSKEY');
+    $message = "Halo {$user->full_name}, permintaan pembelian Anda (ID: {$purchaseRequest->id}) telah diperbarui: {$statusMessage} Silahkan pantau pesanan anda secara berkala melalui website http://awmgarage.com";
+    $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
+
+    $response = Http::asForm()->post($url, [
+        'userkey' => $userkey,
+        'passkey' => $passkey,
+        'to' => $user->phone,
+        'message' => $message,
+    ]);
+
+    $result = $response->json();
+
+    if ($result && $result['status'] != '1') {
+        \Log::warning('Gagal mengirim notifikasi status', [
+            'user_id' => $user->id,
+            'phone' => $user->phone,
+            'response' => $result,
+        ]);
+    } else {
+        \Log::info('Notifikasi status berhasil dikirim', [
+            'user_id' => $user->id,
+            'phone' => $user->phone,
+        ]);
+    }
+}
+
+public function index()
+{
+    $user = Auth::user();
+
+    $purchaseRequests = PurchaseRequest::with(['service' => function ($query) {
+            $query->withTrashed(); // Pastikan service yang dihapus tetap diambil
+        }, 'offerPrice'])
+        ->when($user->role === 'customer', function ($query) use ($user) {
+            return $query->where('user_id', $user->id);
+        })
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return Inertia::render('PurchaseRequests/Index', [
+        'purchaseRequests' => $purchaseRequests
+    ]);
+}
     public function create()
     {
-        $services = Service::with('additionals')->get(); // [CHANGED] Load additionals
-        return Inertia::render('PurchaseRequests/Create', [
-            'services' => $services
-        ]);
-    }
+    $services = Service::with('additionals')->whereNull('deleted_at')->get(); // Hanya ambil yang belum di-soft delete
+    return Inertia::render('PurchaseRequests/Create', [
+        'services' => $services
+    ]);
+}
 
     public function store(Request $request)
     {
@@ -157,6 +199,8 @@ class PurchaseRequestController extends Controller
             'additional_details' => $additionalDetails,            
             'status' => 'pending',
         ]);
+
+        $this->sendStatusNotification($purchaseRequest, "Permintaan Anda sedang menunggu peninjauan oleh admin untuk perhitungan estimasi biaya.");
 
         return redirect()->route('purchase_requests.index')->with('success', 'Purchase Request created successfully.');
     }
@@ -279,6 +323,8 @@ class PurchaseRequestController extends Controller
             ->firstOrFail();
 
         $purchaseRequest->update(['status' => 'waiting_for_dp']);
+
+        $this->sendStatusNotification($purchaseRequest, "Penawaran telah diterima, Mohon segera lakukan pembayaran DP atau Full.");
         return redirect()->route('purchase_requests.show', $id)->with('success', 'Offer accepted.');
     }
 
@@ -290,6 +336,8 @@ class PurchaseRequestController extends Controller
             ->firstOrFail();
 
         $purchaseRequest->update(['status' => 'cancelled']);
+
+        $this->sendStatusNotification($purchaseRequest, "Permintaan Anda telah dibatalkan.");
         return redirect()->route('purchase_requests.index')->with('success', 'Purchase Request cancelled.');
     }
 
@@ -429,6 +477,8 @@ class PurchaseRequestController extends Controller
         'shipping_to_customer_preference' => $request->shipping_to_customer_preference,
         'additional_details' => $additionalDetails,
     ]);
+
+    $this->sendStatusNotification($purchaseRequest, "Permintaan pemesanan anda telah diperbarui.");
 
     return redirect()->route('purchase_requests.show', $id)
         ->with('success', 'Purchase Request updated successfully.');

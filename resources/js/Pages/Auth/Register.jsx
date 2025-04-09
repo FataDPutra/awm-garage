@@ -1,9 +1,7 @@
-import InputError from "@/Components/InputError";
-import InputLabel from "@/Components/InputLabel";
-import PrimaryButton from "@/Components/PrimaryButton";
-import TextInput from "@/Components/TextInput";
-import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
+import GuestLayout from "@/Layouts/GuestLayout";
+import CustomInput from "@/Components/CustomInput";
+import CustomButton from "@/Components/CustomButton";
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -15,7 +13,6 @@ export default function Register() {
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route("register"), {
             onFinish: () => reset("password", "password_confirmation"),
         });
@@ -23,132 +20,81 @@ export default function Register() {
 
     return (
         <GuestLayout>
-            <Head title="Register" />
+            <Head title="Register - AWM Garage" />
 
-            <form onSubmit={submit}>
-                <div className="mt-4">
-                    <InputLabel htmlFor="username" value="User Name" />
+            <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6">
+                {/* Logo dan Judul */}
+                <div className="flex flex-col items-center mb-8">
+                    <img
+                        src="/logo-awm-garage.jpeg"
+                        alt="AWM Garage Logo"
+                        className="h-16 w-auto mb-3"
+                    />
+                    <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        Daftar ke AWM Garage
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 text-center">
+                        Buat akun untuk memesan layanan kami
+                    </p>
+                </div>
 
-                    <TextInput
+                {/* Form Register */}
+                <form onSubmit={submit} className="space-y-6">
+                    {/* Username Field */}
+                    <CustomInput
                         id="username"
-                        name="username"
+                        label="Username"
                         value={data.username}
-                        className="mt-1 block w-full"
+                        onChange={(e) => setData("username", e.target.value)}
+                        error={errors.username}
                         autoComplete="username"
                         isFocused={true}
-                        onChange={(e) => setData("username", e.target.value)}
                         required
                     />
 
-                    <InputError message={errors.username} className="mt-2" />
-                </div>
-
-                {/* <div className="mt-4">
-                    <InputLabel htmlFor="full_name" value="Full Name" />
-
-                    <TextInput
-                        id="full_name"
-                        name="full_name"
-                        value={data.full_name}
-                        className="mt-1 block w-full"
-                        autoComplete="full_name"
-                        isFocused={true}
-                        onChange={(e) => setData("full_name", e.target.value)}
-                        required
-                    />
-
-                    <InputError message={errors.full_name} className="mt-2" />
-                </div> */}
-
-                {/* <div className="mt-4">
-                    <InputLabel htmlFor="phone" value="Phone" />
-
-                    <TextInput
-                        id="phone"
-                        name="phone"
-                        value={data.phone}
-                        className="mt-1 block w-full"
-                        autoComplete="phone"
-                        isFocused={true}
-                        onChange={(e) => setData("phone", e.target.value)}
-                        required
-                    />
-
-                    <InputError message={errors.phone} className="mt-2" />
-                </div> */}
-
-                {/* <div className="mt-4">
-                    <InputLabel htmlFor="email" value="Email" />
-
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="email"
-                        onChange={(e) => setData("email", e.target.value)}
-                        required
-                    />
-
-                    <InputError message={errors.email} className="mt-2" />
-                </div> */}
-
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
+                    {/* Password Field */}
+                    <CustomInput
                         id="password"
+                        label="Password"
                         type="password"
-                        name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
                         onChange={(e) => setData("password", e.target.value)}
+                        error={errors.password}
+                        autoComplete="new-password"
                         required
                     />
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4">
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
-
-                    <TextInput
+                    {/* Confirm Password Field */}
+                    <CustomInput
                         id="password_confirmation"
+                        label="Konfirmasi Password"
                         type="password"
-                        name="password_confirmation"
                         value={data.password_confirmation}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
                         onChange={(e) =>
                             setData("password_confirmation", e.target.value)
                         }
+                        error={errors.password_confirmation}
+                        autoComplete="new-password"
                         required
                     />
 
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    <Link
-                        href={route("login")}
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Already registered?
-                    </Link>
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Register
-                    </PrimaryButton>
-                </div>
-            </form>
+                    {/* Actions */}
+                    <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+                        <Link
+                            href={route("login")}
+                            className="text-sm text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md"
+                        >
+                            Sudah punya akun? Masuk
+                        </Link>
+                        <CustomButton
+                            disabled={processing}
+                            className="sm:w-auto"
+                        >
+                            Daftar
+                        </CustomButton>
+                    </div>
+                </form>
+            </div>
         </GuestLayout>
     );
 }
