@@ -10,6 +10,7 @@ import {
     Package,
     Paintbrush,
     User,
+    BarChart2,
 } from "lucide-react";
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -46,6 +47,11 @@ export default function AuthenticatedLayout({ header, children }) {
                       icon: <Package size={20} />,
                   },
                   {
+                      href: "/admin/reports",
+                      label: "Laporan",
+                      icon: <BarChart2 size={20} />,
+                  },
+                  {
                       href: "/services",
                       label: "Layanan",
                       icon: <Paintbrush size={20} />,
@@ -73,7 +79,7 @@ export default function AuthenticatedLayout({ header, children }) {
             services: "Layanan",
             payments: "Pembayaran",
             shippings: "Pengiriman",
-            // admin: "Admin",
+            reports: "Laporan",
             profile: "Profile",
             locations: "Locations",
         };
@@ -103,7 +109,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                 className="flex shrink-0 items-center"
                             >
                                 <img
-                                    src="/logo-awm-garage.jpeg"
+                                    src="/logo-awm.svg"
                                     alt="AWM Garage Logo"
                                     className="h-10 w-auto"
                                 />

@@ -4,7 +4,9 @@ import axios from "axios";
 import debounce from "lodash/debounce";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Plus } from "lucide-react";
+import { X } from "lucide-react";
 import { FileText } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import ServiceSelection from "@/Components/ServiceSelection";
 import AdditionalOptions from "@/Components/AdditionalOptions";
 import DescriptionInput from "@/Components/DescriptionInput";
@@ -31,6 +33,7 @@ export default function Create() {
         shipping_to_customer_preference: null,
         additionals: [],
     });
+    const [showLocationAlert, setShowLocationAlert] = useState(true);
 
     const [photoPreviews, setPhotoPreviews] = useState([]);
     const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
@@ -398,6 +401,56 @@ export default function Create() {
             }
         >
             <Head title="Buat Pesanan" />
+            {/* Beautiful Modal Alert */}
+            {showLocationAlert && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
+                        <div className="p-6 relative">
+                            <button
+                                onClick={() => setShowLocationAlert(false)}
+                                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div className="flex flex-col items-center text-center">
+                                <div className="bg-yellow-100 p-3 rounded-full mb-4">
+                                    <AlertTriangle
+                                        size={48}
+                                        className="text-yellow-600"
+                                    />
+                                </div>
+
+                                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                                    Informasi Penting
+                                </h3>
+
+                                <div className="text-gray-600 mb-6 space-y-2">
+                                    <p>
+                                        Bengkel kami berlokasi di{" "}
+                                        <span className="font-semibold text-blue-600">
+                                            Jawa Tengah
+                                        </span>
+                                        .
+                                    </p>
+                                    <p>
+                                        Pemesanan dari luar Jawa Tengah mungkin
+                                        dikenakan biaya pengiriman yang lebih
+                                        tinggi.
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowLocationAlert(false)}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200"
+                                >
+                                    Mengerti, Lanjutkan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="container mx-auto px-4 py-6">
                 <form
                     onSubmit={handleSubmit}

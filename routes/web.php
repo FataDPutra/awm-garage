@@ -1,8 +1,9 @@
-        <?php
+<?php
 
         use App\Http\Controllers\ProfileController;
         use Illuminate\Foundation\Application;
         use Illuminate\Support\Facades\Route;
+        use Illuminate\Http\Request;
         use Inertia\Inertia;
         use App\Http\Controllers\ServiceController;
         use App\Http\Controllers\OrderController;
@@ -15,6 +16,9 @@
         use App\Http\Controllers\DashboardController;
         use App\Http\Controllers\ReviewController;
         use App\Http\Controllers\OTPController;
+        use App\Http\Controllers\ReportController;
+
+
 
 
 
@@ -31,13 +35,20 @@
                 'phpVersion' => PHP_VERSION,
             ]);
         });
+        
+        Route::get('/reviews', [ReviewController::class, 'index']);
+
+        // Route::post('/payments/callback', [PaymentController::class, 'handleCallback'])->name('payments.callback');
 
         // Route::get('/locations', [LocationController::class, 'search']);
+
+
 
         // Dashboard hanya untuk user yang sudah login
         Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/locations', [LocationController::class, 'search'])->name('locations.search');
 
+            
             // Route::get('/dashboard', function () {
             //     return Inertia::render('Dashboard');
             // })->name('dashboard');
@@ -71,6 +82,8 @@
                 Route::post('/payments/{offerprice_id}/payment-dp', [PaymentController::class, 'storeDP'])->name('payments.store-dp');
                 Route::get('/payments/{offerprice_id}/payment-full', [PaymentController::class, 'createFull'])->name('payments.payment-full');
                 Route::post('/payments/{offerprice_id}/payment-full', [PaymentController::class, 'storeFull'])->name('payments.store-full');
+                // Route::post('/payments/callback', [PaymentController::class, 'handleCallback'])->name('payments.callback');
+                
 
                 Route::get('/orders', [OrderController::class, 'indexCustomer'])->name('orders-customer.index');
                 Route::get('/orders/{order_id}', [OrderController::class, 'showCustomer'])->name('orders-customer.show');
@@ -81,6 +94,17 @@
 
                 Route::post('/orders/{order_id}/review', [ReviewController::class, 'storeReview'])->name('orders.review');
 
+//                 Route::get('/test-callback-settlement', function () {
+//     $data = [
+//         'order_id' => 'DP-67fd1978b735b',
+//         'status_code' => '200',
+//         'gross_amount' => '2499',
+//         'transaction_status' => 'settlement',
+//         'payment_type' => 'qris',
+//         'signature_key' => hash('sha512', 'DP-67f7e84c8703920015000' . env('MIDTRANS_SERVER_KEY')),
+//     ];
+//     return app(\App\Http\Controllers\PaymentController::class)->handleCallback(new Request($data));
+// });
             });
 
             // ✅ Routes untuk **Admin** (Hanya Admin yang bisa mengakses)
@@ -131,10 +155,16 @@
                 
                 Route::post('/purchaserequests/{id}/offer', [OfferPriceController::class, 'storeOfferPrice'])->name('admin.purchaserequests.offer');        
                 Route::put('/admin/purchase-requests/{id}/update-offer', [OfferPriceController::class, 'updateOfferPrice'])->name('admin.purchaserequests.update_offer');
+                Route::post('/admin/purchaserequests/{id}/reject', [PurchaseRequestController::class, 'reject'])->name('admin.purchaserequests.reject');
+
+                Route::get('/admin/reports', [ReportController::class, 'index'])->name('reports.index');
+                Route::get('/admin/reports/export-pdf', [ReportController::class, 'exportPDF'])->name('reports.export-pdf');
+
             });
             // [CHANGED] Menambahkan rute untuk calculate shipping yang sebelumnya hilang
             Route::post('/calculate-shipping', [PurchaseRequestController::class, 'calculateShippingCost'])->name('calculate.shipping');
             Route::post('/calculate-shipping-to-customer', [PurchaseRequestController::class, 'calculateShippingCostToCustomer'])->name('calculate.shipping.to.customer'); 
+            
         });
 
         Route::get('/api/admin-zip-code', function () {

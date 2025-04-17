@@ -12,14 +12,10 @@ use Illuminate\Support\Facades\Log;
 
 class ShippingController extends Controller
 {
-    /**
-     * Mengirim notifikasi WhatsApp berdasarkan status Shipping jika nomor terverifikasi
-     */
     private function sendStatusNotification($order, $statusMessage, $trackingNumber = null, $courierCode = null)
     {
         $user = $order->offerPrice->purchaseRequest->user;
 
-        // Hanya kirim notifikasi jika nomor telepon sudah diverifikasi
         if (!$user->phone_verified_at) {
             \Log::info('Notifikasi tidak dikirim karena nomor belum diverifikasi', ['user_id' => $user->id]);
             return;
@@ -29,7 +25,6 @@ class ShippingController extends Controller
         $passkey = env('ZENZIVA_PASSKEY');
         $message = "Halo {$user->full_name}, pesanan Anda (ID: {$order->order_id}) telah diperbarui: {$statusMessage} Silahkan pantau pesanan anda secara berkala melalui website http://awmgarage.com";
 
-        // Tambahkan informasi pengiriman jika ada tracking number dan courier code
         if ($trackingNumber && $courierCode) {
             $courierName = $this->getCourierName($courierCode);
             $trackingUrl = $this->getTrackingUrl($courierCode, $trackingNumber);
@@ -63,9 +58,6 @@ class ShippingController extends Controller
         }
     }
 
-    /**
-     * Mendapatkan nama kurir berdasarkan kode kurir
-     */
     private function getCourierName($courierCode)
     {
         $courierNames = [
@@ -74,15 +66,11 @@ class ShippingController extends Controller
             'tiki' => 'TIKI',
             'sicepat' => 'SiCepat',
             'jnt' => 'J&T Express',
-            // Tambahkan kurir lain sesuai kebutuhan
         ];
 
         return $courierNames[$courierCode] ?? ucfirst($courierCode);
     }
 
-    /**
-     * Mendapatkan URL pelacakan berdasarkan kode kurir dan nomor resi
-     */
     private function getTrackingUrl($courierCode, $trackingNumber)
     {
         $trackingUrls = [
@@ -91,13 +79,11 @@ class ShippingController extends Controller
             'tiki' => "https://www.tiki.id/id/tracking?noresi={$trackingNumber}",
             'sicepat' => "https://www.sicepat.com/checkAwb/{$trackingNumber}",
             'jnt' => "https://www.jtexpress.co.id/track?waybill={$trackingNumber}",
-            // Tambahkan URL pelacakan resmi kurir lain sesuai kebutuhan
         ];
 
         return $trackingUrls[$courierCode] ?? 'URL pelacakan tidak tersedia';
     }
 
-    // Menampilkan daftar pengiriman
     public function index()
     {
         $shippings = Shipping::with('order.offerPrice.purchaseRequest.user')
@@ -109,7 +95,6 @@ class ShippingController extends Controller
         ]);
     }
 
-    // Menampilkan detail pengiriman
     public function show($shipping_id)
     {
         $shipping = Shipping::with('order.offerPrice.purchaseRequest.user')
@@ -121,7 +106,6 @@ class ShippingController extends Controller
         ]);
     }
 
-    // Admin menginput data pengiriman
     public function store(Request $request, $order_id)
     {
         $request->validate([
@@ -132,7 +116,6 @@ class ShippingController extends Controller
 
         $order = Order::where('order_id', $order_id)->firstOrFail();
 
-        // Buat data pengiriman
         $shipping = Shipping::create([
             'order_id' => $order->order_id,
             'courier_code' => $request->courier_code,
@@ -142,16 +125,13 @@ class ShippingController extends Controller
             'status' => 'in_transit'
         ]);
 
-        // Update status order menjadi "shipped"
         $order->update(['status' => 'shipped']);
 
-        // Kirim notifikasi dengan informasi kurir dan URL pelacakan jika nomor terverifikasi
         $this->sendStatusNotification($order, "Pesanan Anda telah dikirim", $request->tracking_number, $request->courier_code);
 
         return redirect()->route('shippings.index')->with('success', 'Pesanan telah dikirim.');
     }
 
-    // Admin mengonfirmasi barang telah diterima oleh kustomer
     public function markAsDelivered($shipping_id)
     {
         $shipping = Shipping::where('shipping_id', $shipping_id)->firstOrFail();
@@ -161,9 +141,6 @@ class ShippingController extends Controller
             'status' => 'delivered',
             'received_date' => now()
         ]);
-
-        // Kirim notifikasi jika nomor terverifikasi
-        // $this->sendStatusNotification($order, "Pesanan Anda telah diterima.");
 
         return redirect()->route('shippings.index')->with('success', 'Pesanan telah diterima oleh kustomer.');
     }
@@ -182,7 +159,6 @@ class ShippingController extends Controller
 
         $shippingDetails = $order->offerPrice->shipping_to_customer_details;
 
-        // Buat entri pengiriman baru
         $shipping = Shipping::create([
             'order_id' => $order->order_id,
             'courier_code' => $shippingDetails['code'],
@@ -194,11 +170,9 @@ class ShippingController extends Controller
             'status' => 'in_transit',
         ]);
 
-        // Update status order berdasarkan apakah nomor resi diisi
         $newStatus = $request->tracking_number ? 'shipped' : 'waiting_for_shipment_tracking';
         $order->update(['status' => $newStatus]);
 
-        // Kirim notifikasi dengan informasi kurir dan URL pelacakan jika ada nomor resi dan nomor terverifikasi
         if ($request->tracking_number) {
             $this->sendStatusNotification($order, "Pesanan Anda telah dikirim", $request->tracking_number, $shippingDetails['code']);
         }
@@ -208,59 +182,58 @@ class ShippingController extends Controller
 
     public function confirmReceivedCustomer(Request $request, $order_id)
     {
-        $order = Order::with(['shipping', 'offerPrice.purchaseRequest', 'review'])
-            ->where('order_id', $order_id)
-            ->firstOrFail();
-
-        if (!$order->offerPrice || !$order->offerPrice->purchaseRequest || $order->offerPrice->purchaseRequest->user_id !== auth()->id()) {
-            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke pesanan ini.');
-        }
-
-        if (!$order->shipping || $order->shipping->status !== 'in_transit') {
-            return redirect()->back()->with('error', 'Pengiriman tidak dalam status in_transit.');
-        }
-
-        $request->validate([
-            'rating' => 'nullable|integer|min:1|max:5',
-            'review' => 'nullable|string|max:1000',
-            'review_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        \Log::info('Memulai confirmReceivedCustomer', [
+            'order_id' => $order_id,
+            'user_id' => auth()->id(),
+            'input' => $request->all()
         ]);
 
-        $order->shipping->update([
-            'status' => 'delivered',
-            'received_date' => now(),
-        ]);
+        try {
+            $order = Order::with(['shipping', 'offerPrice.purchaseRequest'])
+                ->where('order_id', $order_id)
+                ->firstOrFail();
 
-        $order->update(['status' => 'completed']);
-
-        if ($order->offerPrice->purchaseRequest) {
-            $order->offerPrice->purchaseRequest->update(['status' => 'done']);
-        }
-
-        // Simpan rating, review, dan multiple gambar jika ada
-        if ($request->has('rating') || $request->has('review') || $request->hasFile('review_images')) {
-            $imagePaths = [];
-            if ($request->hasFile('review_images')) {
-                foreach ($request->file('review_images') as $image) {
-                    $imagePaths[] = $image->store('review_images', 'public');
-                }
+            if (!$order->offerPrice || !$order->offerPrice->purchaseRequest || $order->offerPrice->purchaseRequest->user_id !== auth()->id()) {
+                \Log::warning('Akses ditolak', ['order_id' => $order_id]);
+                return redirect()->back()->with('error', 'Anda tidak memiliki akses ke pesanan ini.');
             }
 
-            Review::updateOrCreate(
-                ['order_id' => $order->order_id],
-                [
-                    'rating' => $request->rating,
-                    'review' => $request->review,
-                    'image_paths' => $imagePaths,
-                ]
-            );
+            if (!$order->shipping || $order->shipping->status !== 'in_transit') {
+                \Log::warning('Status pengiriman tidak valid', [
+                    'order_id' => $order_id,
+                    'shipping_status' => $order->shipping ? $order->shipping->status : null
+                ]);
+                return redirect()->back()->with('error', 'Pengiriman tidak dalam status in_transit.');
+            }
+
+            \DB::transaction(function () use ($order) {
+                $order->shipping->update([
+                    'status' => 'delivered',
+                    'received_date' => now(),
+                ]);
+                \Log::info('Shipping updated', ['order_id' => $order->order_id, 'status' => 'delivered']);
+
+                $order->update(['status' => 'completed']);
+                \Log::info('Order updated', ['order_id' => $order->order_id, 'status' => 'completed']);
+
+                if ($order->offerPrice->purchaseRequest) {
+                    $order->offerPrice->purchaseRequest->update(['status' => 'done']);
+                    \Log::info('Purchase request updated', ['order_id' => $order->order_id]);
+                }
+            });
+
+            $this->sendStatusNotification($order, "Anda telah mengonfirmasi barang telah diterima. Mohon berikan rating untuk pesanan Anda. Terima Kasih telah memesanan layanan kami :)");
+
+            \Log::info('Proses confirmReceivedCustomer selesai', ['order_id' => $order_id]);
+
+            return redirect()->back()->with('success', 'Barang telah dikonfirmasi diterima.');
+        } catch (\Exception $e) {
+            \Log::error('Error di confirmReceivedCustomer', [
+                'order_id' => $order_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-
-        // Kirim notifikasi jika nomor terverifikasi
-        $this->sendStatusNotification($order, "Anda telah mengonfirmasi barang telah diterima. Mohon berikan rating untuk pesanan Anda. Terima Kasih telah memesanan layanan kami :)");
-
-        return redirect()->back()->with('success', 'Barang telah dikonfirmasi diterima.');
     }
-
-    
 }

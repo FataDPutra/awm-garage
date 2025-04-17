@@ -25,16 +25,19 @@ export default function Login({ status, canResetPassword }) {
             <div className="w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-900 rounded-xl shadow-xl">
                 {/* Logo dan Judul */}
                 <div className="flex flex-col items-center mb-10">
-                    <img
-                        src="/logo-awm-garage.jpeg"
-                        alt="AWM Garage Logo"
-                        className="h-20 w-auto mb-4"
-                    />
+                    <Link href="/" className="flex shrink-0 items-center">
+                        <img
+                            src="/logo-awm.svg"
+                            alt="AWM Garage Logo"
+                            className="h-20 w-auto mb-4"
+                        />
+                    </Link>
+
                     <h2 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                         Masuk ke AWM Garage
                     </h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
-                        Login untuk memesan layanan vaporblasting dan lebih
+                        Login untuk memesan layanan kami
                     </p>
                 </div>
 

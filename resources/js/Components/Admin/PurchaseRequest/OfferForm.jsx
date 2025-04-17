@@ -1,6 +1,6 @@
-// resources/js/Components/Admin/OfferForm.jsx
-import React from "react";
-import { DollarSign, Loader2, Send, X } from "lucide-react";
+import React, { useState } from "react";
+import { DollarSign, Loader2, Send, X, AlertTriangle } from "lucide-react";
+import { useForm } from "@inertiajs/react";
 
 const OfferForm = ({
     purchaseRequest,
@@ -18,6 +18,20 @@ const OfferForm = ({
     getTotalEstimatedDays,
     formatCurrency,
 }) => {
+    const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+    const { post: postReject, processing: rejectProcessing } = useForm({});
+
+    const handleReject = () => {
+        postReject(route("admin.purchaserequests.reject", purchaseRequest.id), {
+            onSuccess: () => {
+                alert("Permintaan berhasil ditolak!");
+                setShowRejectConfirm(false);
+            },
+            onError: () =>
+                alert("Gagal menolak permintaan. Silakan coba lagi."),
+        });
+    };
+
     return (
         <div className="bg-white shadow-lg rounded-xl p-6 mb-6 border border-gray-200 transform transition-all duration-300 hover:shadow-xl">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -232,8 +246,53 @@ const OfferForm = ({
                             Batal
                         </button>
                     )}
+                    {/* Reject Button (Visible only when status is pending) */}
+                    {purchaseRequest.status === "pending" && (
+                        <button
+                            type="button"
+                            onClick={() => setShowRejectConfirm(true)}
+                            className="relative bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center w-full sm:w-auto group"
+                        >
+                            <AlertTriangle
+                                size={20}
+                                className="mr-2 group-hover:scale-110 transition-transform duration-200"
+                            />
+                            Tolak Permintaan
+                        </button>
+                    )}
                 </div>
             </form>
+
+            {/* Confirmation Dialog for Rejection */}
+            {showRejectConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">
+                            Konfirmasi Penolakan
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                            Apakah Anda yakin ingin menolak permintaan #
+                            {purchaseRequest.id}? Status akan diubah menjadi
+                            "Dibatalkan".
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowRejectConfirm(false)}
+                                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleReject}
+                                disabled={rejectProcessing}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed"
+                            >
+                                {rejectProcessing ? "Memproses..." : "Tolak"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

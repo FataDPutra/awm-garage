@@ -7,6 +7,8 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
+
+    
     /**
      * Register any application services.
      */
@@ -18,8 +20,17 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    // public function boot(): void
+    // {
+    //     Vite::prefetch(concurrency: 3);
+    // }
+    
+    public function boot()
     {
-        Vite::prefetch(concurrency: 3);
+        // Paksa HTTPS saat tidak di lokal
+        if (env('APP_ENV') !== 'local') {
+            \URL::forceScheme('https');
+        }
     }
+    
 }

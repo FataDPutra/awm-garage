@@ -41,14 +41,17 @@ export default function PurchaseRequestList({
                             </div>
                             <div className="space-y-2 text-sm text-gray-700">
                                 <p>
-                                    <Hash size={16} className="inline mr-2" />
+                                    <Hash
+                                        size={16}
+                                        className="inline mr-2 text-white sm:text-gray-500"
+                                    />
                                     <strong>ID:</strong> {request.id}
                                 </p>
                                 {showCustomerColumn && (
                                     <p>
                                         <User
                                             size={16}
-                                            className="inline mr-2"
+                                            className="inline mr-2 text-white sm:text-gray-500"
                                         />
                                         <strong>Customer:</strong>{" "}
                                         {request.user?.full_name || "N/A"}
@@ -57,7 +60,7 @@ export default function PurchaseRequestList({
                                 <p>
                                     <Paintbrush
                                         size={16}
-                                        className="inline mr-2"
+                                        className="inline mr-2 text-white sm:text-gray-500"
                                     />
                                     <strong>Layanan:</strong>{" "}
                                     {request.service?.service_name || "N/A"}
@@ -65,19 +68,27 @@ export default function PurchaseRequestList({
                                 <p className="truncate">
                                     <FileText
                                         size={16}
-                                        className="inline mr-2"
+                                        className="inline mr-2 text-white sm:text-gray-500"
                                     />
                                     <strong>Deskripsi:</strong>{" "}
                                     {request.description ||
                                         "Tidak ada deskripsi"}
                                 </p>
                                 <p>
-                                    <Clock size={16} className="inline mr-2" />
+                                    <Clock
+                                        size={16}
+                                        className="inline mr-2 text-white sm:text-gray-500"
+                                    />
                                     <strong>Status:</strong>{" "}
                                     <span
-                                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white ${statusDisplay.bgColor}`}
+                                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium text-white ${statusDisplay.bgColor}`}
                                     >
-                                        {statusDisplay.icon}
+                                        {React.cloneElement(
+                                            statusDisplay.icon,
+                                            {
+                                                className: `text-white sm:${statusDisplay.icon.props.className} mr-1`,
+                                            }
+                                        )}
                                         {statusDisplay.label}
                                     </span>
                                 </p>

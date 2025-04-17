@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "@inertiajs/react";
-import { Hash, FileText, Clock } from "lucide-react";
+import { Hash, FileText, Clock, Calendar } from "lucide-react";
 import { statusConfig } from "./StatusSelector";
 
 export default function OrderList({
@@ -29,28 +29,52 @@ export default function OrderList({
                         </div>
                         <div className="space-y-2 text-sm text-gray-700">
                             <p>
-                                <Hash size={16} className="inline mr-2" />
+                                <Hash
+                                    size={16}
+                                    className="inline mr-2 text-white md:text-gray-600"
+                                />
                                 <strong>ID:</strong> {order.order_id}
                             </p>
                             {showCustomerColumn && (
                                 <p>
                                     <FileText
                                         size={16}
-                                        className="inline mr-2"
+                                        className="inline mr-2 text-white md:text-gray-600"
                                     />
                                     <strong>Customer:</strong>{" "}
                                     {order.offer_price?.purchase_request?.user
-                                        ?.full_name || "N/A"}
+                                        ?.full_name || "Tidak Diketahui"}
                                 </p>
                             )}
                             <p className="truncate">
-                                <FileText size={16} className="inline mr-2" />
+                                <FileText
+                                    size={16}
+                                    className="inline mr-2 text-white md:text-gray-600"
+                                />
                                 <strong>Layanan:</strong>{" "}
                                 {order.offer_price?.purchase_request?.service
-                                    ?.service_name || "N/A"}
+                                    ?.service_name || "Tidak Diketahui"}
                             </p>
                             <p>
-                                <Clock size={16} className="inline mr-2" />
+                                <Calendar
+                                    size={16}
+                                    className="inline mr-2 text-white md:text-gray-600"
+                                />
+                                <strong>Tanggal:</strong>{" "}
+                                {new Date(order.created_at).toLocaleDateString(
+                                    "id-ID",
+                                    {
+                                        day: "2-digit",
+                                        month: "long",
+                                        year: "numeric",
+                                    }
+                                )}
+                            </p>
+                            <p>
+                                <Clock
+                                    size={16}
+                                    className="inline mr-2 text-white md:text-gray-600"
+                                />
                                 <strong>Status:</strong>{" "}
                                 <span
                                     className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white ${
@@ -58,7 +82,14 @@ export default function OrderList({
                                         "bg-gray-400"
                                     }`}
                                 >
-                                    {statusConfig[order.status]?.icon || null}
+                                    {statusConfig[order.status]?.icon
+                                        ? React.cloneElement(
+                                              statusConfig[order.status].icon,
+                                              {
+                                                  className: "mr-1",
+                                              }
+                                          )
+                                        : null}
                                     {statusConfig[order.status]?.label ||
                                         order.status}
                                 </span>
@@ -68,7 +99,7 @@ export default function OrderList({
                 ))
             ) : (
                 <div className="text-center py-6 text-gray-500">
-                    Belum ada pesanan.
+                    Tidak ada pesanan yang ditemukan untuk filter ini.
                 </div>
             )}
         </div>

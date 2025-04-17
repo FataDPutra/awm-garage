@@ -23,6 +23,8 @@ class LocationController extends Controller
         }
 
         $cacheKey = 'location_search_' . md5($query);
+        Log::info('Search initiated for: ' . $query);
+
 
         $results = Cache::remember($cacheKey, now()->addDays(7), function () use ($query) {
             // Prioritaskan database lokal
@@ -49,15 +51,17 @@ class LocationController extends Controller
 
             // Panggil API
             try {
-                $response = Http::withHeaders([
-                    'key' => env('RAJAONGKIR_API_KEY'),
-                ])->get('https://rajaongkir.komerce.id/api/v1/destination/domestic-destination', [
-                    'search' => $query,
-                    'limit' => 5,
-                    'offset' => 0
-                ]);
-
-                $data = $response->json();
+  $response = Http::withHeaders([
+    'key' => env('RAJAONGKIR_API_KEY'),
+])->get('https://rajaongkir.komerce.id/api/v1/destination/domestic-destination', [
+    'search' => $query,
+    'limit' => 5,
+    'offset' => 0
+]);
+Log::info('Status: ' . $response->status());
+Log::info('Isi Respons: ' . $response->body());
+$data = $response->json();
+Log::info('Data: ', $data);
 
                 if (isset($data['data']) && is_array($data['data'])) {
                     foreach ($data['data'] as $location) {
@@ -83,6 +87,8 @@ class LocationController extends Controller
                 return [];
             }
         });
+
+        Log::info('Direct query results: ', $results);
 
         return response()->json([
             'status' => 'success',

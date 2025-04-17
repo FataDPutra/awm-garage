@@ -1,32 +1,44 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Truck, ZoomIn, X } from "lucide-react";
 
-export default function ShippingInfoSection({ order, uploadedProof, post }) {
+export default function ShippingInfoSection({
+    order,
+    uploadedProof,
+    post,
+    flash,
+}) {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+    // Gunakan useEffect untuk menangani flash message
+    useEffect(() => {
+        if (flash?.success) {
+            alert(flash.success); // Tampilkan alert biasa untuk sukses
+        }
+        if (flash?.error) {
+            alert(flash.error); // Tampilkan alert biasa untuk error
+        }
+    }, [flash]);
 
     if (
         !order.shipping &&
         !order.shipping_receipt_customer &&
         !order.shipping_proof_customer
-    )
+    ) {
         return null;
+    }
 
     const handleConfirmReceived = (e) => {
         e.preventDefault();
         post(`/orders/${order.order_id}/confirm-received-customer`, {
             preserveScroll: true,
-            onSuccess: () => alert("Barang telah dikonfirmasi diterima!"),
-            onError: (errors) =>
-                alert(
-                    "Gagal mengkonfirmasi: " +
-                        (errors.message || "Unknown error")
-                ),
+            // Tidak perlu menangani onSuccess atau onError di sini,
+            // karena flash message akan ditangani oleh useEffect
         });
     };
 
     const openPhoto = (photo, e) => {
         e.stopPropagation();
-        setSelectedPhoto(photo); // Gunakan path langsung (uploadedProof)
+        setSelectedPhoto(photo);
     };
 
     const closePhoto = (e) => {

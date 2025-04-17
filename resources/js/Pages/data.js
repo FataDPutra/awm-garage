@@ -5,6 +5,7 @@ export const reviews = [
         comment:
             "Pelayanan sangat memuaskan, hasil vaporblasting seperti baru! Tim AWM Garage sangat profesional dan ramah.",
         image: "/portofolio/portofolio1.jpeg",
+        rating: 5, // Tambahkan rating (1-5)
     },
     {
         id: 2,
@@ -12,20 +13,23 @@ export const reviews = [
         comment:
             "Chrome coating-nya sangat mengkilap dan tahan lama, terima kasih AWM Garage atas hasil yang luar biasa!",
         image: "/portofolio/portofolio2.jpeg",
+        rating: 4, // Tambahkan rating
     },
     {
         id: 3,
         name: "Alice Johnson",
         comment:
             "Sandblasting cepat, rapi, dan hasilnya memuaskan. Bengkel ini benar-benar recommended!",
-        image: "/portofolio/portofolio3.jpeg",
+        image: "/portofolio/portofolio3.jpg",
+        rating: 5, // Tambahkan rating
     },
     {
         id: 4,
         name: "Bob Brown",
         comment:
             "Bengkel yang sangat profesional dengan harga bersaing, pasti kembali lagi untuk layanan lainnya!",
-        image: "/portofolio/portofolio4.jpeg",
+        image: "/portofolio/portofolio4.jpg",
+        rating: 4, // Tambahkan rating
     },
 ];
 
@@ -33,18 +37,16 @@ export const reviews = [
 export const portfolios = [
     "/portofolio/portofolio1.jpeg",
     "/portofolio/portofolio2.jpeg",
-    "/portofolio/portofolio3.jpeg",
-    "/portofolio/portofolio4.jpeg",
-    "/portofolio/portofolio5.jpeg",
-    "/portofolio/portofolio6.jpeg",
-    "/portofolio/portofolio7.jpeg",
-    "/portofolio/portofolio8.jpeg",
-    "/portofolio/portofolio9.jpeg",
-    "/portofolio/portofolio10.jpeg",
-    "/portofolio/portofolio11.jpeg",
-    "/portofolio/portofolio12.jpeg",
-    "/portofolio/portofolio13.jpeg",
-    "/portofolio/portofolio14.jpeg",
+    "/portofolio/portofolio3.jpg",
+    "/portofolio/portofolio4.jpg",
+    "/portofolio/portofolio5.jpg",
+    "/portofolio/portofolio6.jpg",
+    "/portofolio/portofolio7.jpg",
+    "/portofolio/portofolio8.jpg",
+    "/portofolio/portofolio9.jpg",
+    "/portofolio/portofolio10.jpg",
+    "/portofolio/portofolio11.jpg",
+    "/portofolio/portofolio12.jpg",
 ];
 
 // Data untuk Layanan Unggulan
@@ -101,7 +103,7 @@ export const advantages = [
     {
         icon: "/icons/complaint.png",
         title: "Kemudahan Komplain",
-        desc: "Memastikan pengerjaan pesanan sebelum dikirim.",
+        desc: "Memastikan hasil pengerjaan pesanan sebelum dikirim.",
     },
     {
         icon: "/icons/shipping.png",
@@ -111,7 +113,7 @@ export const advantages = [
     {
         icon: "/icons/payment.png",
         title: "Pembayaran Mudah",
-        desc: "Pembayaran bisa dilakukan DP dahulu dan opsi pembayaran beragam dan fleksibel.",
+        desc: "Pembayaran bisa dilakukan DP dahulu dan opsi pembayaran beragam serta aman dan fleksibel.",
     },
 ];
 

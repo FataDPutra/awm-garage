@@ -483,4 +483,26 @@ public function index()
     return redirect()->route('purchase_requests.show', $id)
         ->with('success', 'Purchase Request updated successfully.');
 }
+
+   /**
+     * Admin rejects a purchase request, setting status to cancelled
+     */
+    public function reject($id)
+    {
+        $purchaseRequest = PurchaseRequest::where('id', $id)->firstOrFail();
+
+        // Update the purchase request to cancelled status
+        $purchaseRequest->update([
+            'status' => 'cancelled',
+        ]);
+
+        // Send notification to the user
+        $this->sendStatusNotification(
+            $purchaseRequest,
+            "Permintaan Anda telah ditolak oleh admin."
+        );
+
+        return redirect()->route('admin.purchaserequests.index')
+            ->with('success', 'Purchase Request rejected successfully.');
+    }
 }

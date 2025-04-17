@@ -25,11 +25,13 @@ export default function Register() {
             <div className="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6">
                 {/* Logo dan Judul */}
                 <div className="flex flex-col items-center mb-8">
-                    <img
-                        src="/logo-awm-garage.jpeg"
-                        alt="AWM Garage Logo"
-                        className="h-16 w-auto mb-3"
-                    />
+                    <Link href="/" className="flex shrink-0 items-center">
+                        <img
+                            src="/logo-awm.svg"
+                            alt="AWM Garage Logo"
+                            className="h-16 w-auto mb-3"
+                        />
+                    </Link>
                     <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         Daftar ke AWM Garage
                     </h2>

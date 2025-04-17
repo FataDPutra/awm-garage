@@ -7,6 +7,7 @@ import {
     Info,
     UserCheck,
     CreditCard,
+    Package2,
 } from "lucide-react";
 
 export default function OrderInfoSection({ order }) {
@@ -56,7 +57,7 @@ export default function OrderInfoSection({ order }) {
             },
             waiting_for_shipment: {
                 label: "Menunggu Pengiriman",
-                icon: <Truck size={20} className="text-purple-500" />,
+                icon: <Package2 size={20} className="text-purple-500" />,
                 bgColor: "bg-purple-100",
                 textColor: "text-purple-800",
             },

@@ -80,6 +80,7 @@ export default function CustomerShow({ order, auth }) {
                     order={order}
                     uploadedProof={uploadedProof}
                     post={post}
+                    flash={flash} // Oper flash ke ShippingInfoSection
                 />
                 <ReviewsSection
                     order={order}

@@ -9,7 +9,12 @@ import {
     FaExclamationTriangle,
     FaMoneyCheckAlt,
     FaClipboardCheck,
+    FaTruck,
+    FaCheck,
+    FaRedo,
 } from "react-icons/fa";
+import { Package2 } from "lucide-react";
+import { BiSolidPackage } from "react-icons/bi";
 
 const statusConfig = {
     all: {
@@ -32,30 +37,40 @@ const statusConfig = {
         icon: <FaUserCheck className="text-blue-500" />,
         bgColor: "bg-blue-500",
     },
-    waiting_for_shipment: {
-        label: "Dikirim",
-        icon: <FaShippingFast className="text-purple-500" />,
-        bgColor: "bg-purple-500",
+    waiting_for_customer_shipment: {
+        label: "Menunggu Pengiriman Customer",
+        icon: <FaShippingFast className="text-indigo-500" />,
+        bgColor: "bg-indigo-500",
     },
     waiting_for_admin_confirmation: {
         label: "Menunggu Konfirmasi Admin",
         icon: <FaClipboardCheck className="text-teal-500" />,
         bgColor: "bg-teal-500",
     },
+    waiting_for_shipment: {
+        label: "Menunggu Pengiriman",
+        icon: <BiSolidPackage className="text-purple-500" />,
+        bgColor: "bg-purple-500",
+    },
+    shipped: {
+        label: "Dikirim",
+        icon: <FaTruck className="text-cyan-500" />,
+        bgColor: "bg-cyan-500",
+    },
     customer_complain: {
         label: "Komplain",
         icon: <FaExclamationTriangle className="text-red-500" />,
         bgColor: "bg-red-500",
     },
+    approved: {
+        label: "Disetujui",
+        icon: <FaCheck className="text-green-600" />,
+        bgColor: "bg-green-600",
+    },
     completed: {
         label: "Selesai",
         icon: <FaCheckCircle className="text-green-500" />,
         bgColor: "bg-green-500",
-    },
-    cancelled: {
-        label: "Dibatalkan",
-        icon: <FaTimesCircle className="text-gray-500" />,
-        bgColor: "bg-gray-500",
     },
 };
 
@@ -113,4 +128,4 @@ export default function StatusSelector({ selectedStatus, setSelectedStatus }) {
     );
 }
 
-export { statusConfig }; // Ekspor statusConfig untuk digunakan di komponen lain
+export { statusConfig };

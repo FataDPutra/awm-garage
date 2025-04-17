@@ -51,13 +51,17 @@ export default function Dashboard({ auth, orders }) {
 
     if (!auth || !auth.user) {
         return (
-            <AuthenticatedLayout>
-                <Head title="Home">
-                    <meta
-                        name="viewport"
-                        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-                    />
-                </Head>
+            <AuthenticatedLayout
+                header={
+                    <div className="flex items-center gap-3 animate-pulse">
+                        <Home size={28} className="text-blue-500" />
+                        <h2 className="text-3xl font-bold text-blue-600">
+                            Dashboard
+                        </h2>
+                    </div>
+                }
+            >
+                <Head title="Dashboard" />
                 <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
                     <div className="bg-white p-8 rounded-lg shadow-md text-center transition-all hover:shadow-lg">
                         <p className="text-red-600 font-semibold mb-4">
@@ -80,45 +84,49 @@ export default function Dashboard({ auth, orders }) {
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-3xl font-bold text-blue-600 flex items-center animate-fade-in animate-pulse">
-                    <Home size={28} className="mr-2 animate-bounce-subtle" />
-                    Dashboard
-                </h2>
+                <div className="flex items-center gap-3 animate-pulse">
+                    <Home size={28} className="text-blue-500" />
+                    <h2 className="text-3xl font-bold text-blue-600">
+                        Dashboard
+                    </h2>
+                </div>
             }
         >
-            <Head title="Dashboard">
-                <meta
-                    name="viewport"
-                    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-                />
-            </Head>
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <section className="bg-white rounded-lg shadow-md p-6">
-                    <h2 className="text-xl font-semibold text-blue-600 mb-2">
-                        Antrian Pesanan
-                    </h2>
-                    <p className="text-sm text-gray-500 mb-4">
-                        *Estimasi dihitung berdasarkan hari kerja (Senin-Sabtu)
-                    </p>
+            <Head title="Dashboard" />
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                    <div className="text-center sm:text-left">
+                        <h1 className="text-3xl font-bold text-gray-800">
+                            Antrian Pesanan
+                        </h1>
+                        <p className="text-gray-600 mt-1">
+                            *Estimasi dihitung berdasarkan hari kerja
+                            (Senin-Sabtu)
+                        </p>
+                    </div>
+                </div>
 
-                    {queue.length === 0 ? (
-                        <div className="text-center py-10 text-gray-500">
-                            <p className="text-lg font-medium">
-                                Tidak ada pesanan dalam antrian
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {queue.map((order) => (
-                                <QueueCard
-                                    key={order.order_id}
-                                    order={order}
-                                    userRole={userRole}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </section>
+                <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+                    <div className="p-6">
+                        {queue.length === 0 ? (
+                            <div className="text-center py-10 text-gray-500">
+                                <p className="text-lg font-medium">
+                                    Tidak ada pesanan dalam antrian
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {queue.map((order) => (
+                                    <QueueCard
+                                        key={order.order_id}
+                                        order={order}
+                                        userRole={userRole}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

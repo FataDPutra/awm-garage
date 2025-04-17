@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "@inertiajs/react";
-import { Hash, Package, FileText, Clock, Truck } from "lucide-react";
+import { Hash, Package, FileText, Clock, Truck, Calendar } from "lucide-react";
 import {
     FaHourglassStart,
     FaCheckCircle,
@@ -10,9 +10,11 @@ import {
     FaExclamationTriangle,
     FaMoneyCheckAlt,
     FaClipboardCheck,
+    FaTruck,
+    FaCheck,
 } from "react-icons/fa";
+import { BiSolidPackage } from "react-icons/bi";
 
-// Definisikan statusConfig langsung di dalam OrderTable
 const statusConfig = {
     waiting_for_payment: {
         label: "Belum Bayar",
@@ -29,30 +31,40 @@ const statusConfig = {
         icon: <FaUserCheck className="text-white" />,
         bgColor: "bg-blue-500",
     },
-    waiting_for_shipment: {
-        label: "Dikirim",
+    waiting_for_customer_shipment: {
+        label: "Menunggu Pengiriman Customer",
         icon: <FaShippingFast className="text-white" />,
-        bgColor: "bg-purple-500",
+        bgColor: "bg-indigo-500",
     },
     waiting_for_admin_confirmation: {
         label: "Menunggu Konfirmasi Admin",
         icon: <FaClipboardCheck className="text-white" />,
         bgColor: "bg-teal-500",
     },
+    waiting_for_shipment: {
+        label: "Menunggu Pengiriman",
+        icon: <BiSolidPackage className="text-white" />,
+        bgColor: "bg-purple-500",
+    },
+    shipped: {
+        label: "Dikirim",
+        icon: <FaTruck className="text-white" />,
+        bgColor: "bg-cyan-500",
+    },
     customer_complain: {
         label: "Komplain",
         icon: <FaExclamationTriangle className="text-white" />,
         bgColor: "bg-red-500",
     },
+    approved: {
+        label: "Disetujui",
+        icon: <FaCheck className="text-white" />,
+        bgColor: "bg-green-600",
+    },
     completed: {
         label: "Selesai",
         icon: <FaCheckCircle className="text-white" />,
         bgColor: "bg-green-500",
-    },
-    cancelled: {
-        label: "Dibatalkan",
-        icon: <FaTimesCircle className="text-white" />,
-        bgColor: "bg-gray-500",
     },
 };
 
@@ -66,18 +78,11 @@ export default function OrderTable({
             <table className="w-full text-left border-collapse table-fixed">
                 <colgroup>
                     <col className="w-[5%]" />
-                    <col className="w-[20%]" />
+                    <col className="w-[15%]" />
                     {showCustomerColumn && <col className="w-[20%]" />}
                     <col className={showCustomerColumn ? "w-[20%" : "w-[25%"} />
-
-                    <col
-                        className={
-                            showCustomerColumn
-                                ? "md:w-[25%] w-[20%"
-                                : "md:w-[35%] w-[25%"
-                        }
-                    />
-
+                    <col className={showCustomerColumn ? "w-[15%" : "w-[20%"} />
+                    <col className={showCustomerColumn ? "w-[15%" : "w-[20%"} />
                     <col className={showCustomerColumn ? "w-[10%" : "w-[15%"} />
                 </colgroup>
                 <thead>
@@ -103,6 +108,11 @@ export default function OrderTable({
                         <th className="p-4 font-semibold border-b">
                             <div className="flex items-center">
                                 <FileText size={18} className="mr-2" /> Layanan
+                            </div>
+                        </th>
+                        <th className="p-4 font-semibold border-b">
+                            <div className="flex items-center">
+                                <Calendar size={18} className="mr-2" /> Tanggal
                             </div>
                         </th>
                         <th className="p-4 font-semibold border-b">
@@ -138,6 +148,15 @@ export default function OrderTable({
                                     {order.offer_price?.purchase_request
                                         ?.service?.service_name || "N/A"}
                                 </td>
+                                <td className="p-4 truncate text-gray-600">
+                                    {new Date(
+                                        order.created_at
+                                    ).toLocaleDateString("id-ID", {
+                                        day: "2-digit",
+                                        month: "long",
+                                        year: "numeric",
+                                    })}
+                                </td>
                                 <td className="p-4">
                                     <span
                                         className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${
@@ -172,10 +191,11 @@ export default function OrderTable({
                     ) : (
                         <tr>
                             <td
-                                colSpan={showCustomerColumn ? 6 : 5}
+                                colSpan={showCustomerColumn ? 7 : 6}
                                 className="p-6 text-center text-gray-500"
                             >
-                                Belum ada pesanan.
+                                Tidak ada pesanan yang ditemukan untuk filter
+                                ini.
                             </td>
                         </tr>
                     )}

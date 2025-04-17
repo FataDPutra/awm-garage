@@ -9,14 +9,19 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function () {
+            // Daftarkan route untuk callback tanpa middleware
+            Route::middleware([]) // Tidak ada middleware CSRF
+                ->group(base_path('routes/callback.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
+            \App\Http\Middleware\VerifyCsrfToken::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // ✅ Daftarkan middleware role di sini
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);

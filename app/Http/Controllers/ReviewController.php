@@ -7,6 +7,7 @@ use App\Models\Review;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
 
 
 class ReviewController extends Controller
@@ -81,4 +82,63 @@ class ReviewController extends Controller
         return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan review: ' . $e->getMessage());
     }
 }
+
+public function index()    
+    {
+        // Data dummy dari data.js (hard-coded untuk simulasi)
+        $dummyReviews = [
+            [
+                'id' => 'dummy_1',
+                'name' => 'John Doe',
+                'comment' => 'Pelayanan sangat memuaskan, hasil vaporblasting seperti baru! Tim AWM Garage sangat profesional dan ramah.',
+                'image' => '/portofolio/portofolio1.jpeg',
+                'rating' => 5,
+            ],
+            [
+                'id' => 'dummy_2',
+                'name' => 'Jane Smith',
+                'comment' => 'Chrome coating-nya sangat mengkilap dan tahan lama, terima kasih AWM Garage atas hasil yang luar biasa!',
+                'image' => '/portofolio/portofolio2.jpeg',
+                'rating' => 4,
+            ],
+            [
+                'id' => 'dummy_3',
+                'name' => 'Alice Johnson',
+                'comment' => 'Sandblasting cepat, rapi, dan hasilnya memuaskan. Bengkel ini benar-benar recommended!',
+                'image' => '/portofolio/portofolio3.jpg',
+                'rating' => 5,
+            ],
+            [
+                'id' => 'dummy_4',
+                'name' => 'Bob Brown',
+                'comment' => 'Bengkel yang sangat profesional dengan harga bersaing, pasti kembali lagi untuk layanan lainnya!',
+                'image' => '/portofolio/portofolio4.jpg',
+                'rating' => 4,
+            ],
+        ];
+
+        // Ambil review dari database
+        $dbReviews = Review::with(['order.offerPrice.purchaseRequest.user'])
+            ->get()
+            ->map(function ($review) {
+                // Ambil hanya satu gambar dari completed_photo_path
+                $imagePath = is_array($review->order->completed_photo_path) && !empty($review->order->completed_photo_path)
+                    ? $review->order->completed_photo_path[0]
+                    : null;
+                $imageUrl = $imagePath ? Storage::url($imagePath) : '/portofolio/default.jpg';
+
+                return [
+                    'id' => $review->id,
+                    'name' => $review->order->offerPrice->purchaseRequest->user->full_name ?? 'Anonymous',
+                    'comment' => $review->review,
+                    'rating' => $review->rating,
+                    'image' => $imageUrl,
+                ];
+            })->toArray();
+
+        // Gabungkan data: dummy reviews dulu, lalu database reviews
+        $reviews = array_merge($dummyReviews, $dbReviews);
+
+        return response()->json($reviews);
+    }
 }
