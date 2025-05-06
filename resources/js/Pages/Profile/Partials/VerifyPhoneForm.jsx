@@ -51,7 +51,7 @@ export default function VerifyPhoneForm({ user, flash, className = "" }) {
         <section className={className}>
             <header>
                 <h2 className="text-lg font-medium text-gray-900">
-                    Verify Phone Number
+                    Verifikasi Nomor Telepon
                 </h2>
                 <p className="mt-1 text-sm text-gray-600">
                     Jika Anda ingin menerima notifikasi melalui WhatsApp,

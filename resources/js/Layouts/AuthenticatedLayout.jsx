@@ -19,11 +19,17 @@ export default function AuthenticatedLayout({ header, children }) {
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     const sidebarItems = [
         { href: "/dashboard", label: "Home", icon: <Home size={20} /> },
         ...(user.role === "customer"
             ? [
+                  {
+                      href: "/customer/services",
+                      label: "Layanan",
+                      icon: <Paintbrush size={20} />,
+                  },
                   {
                       href: "/purchase-requests",
                       label: "Buat Pesanan",
@@ -47,14 +53,14 @@ export default function AuthenticatedLayout({ header, children }) {
                       icon: <Package size={20} />,
                   },
                   {
-                      href: "/admin/reports",
-                      label: "Laporan",
-                      icon: <BarChart2 size={20} />,
-                  },
-                  {
                       href: "/services",
                       label: "Layanan",
                       icon: <Paintbrush size={20} />,
+                  },
+                  {
+                      href: "/admin/reports",
+                      label: "Laporan",
+                      icon: <BarChart2 size={20} />,
                   },
               ]),
         {
@@ -98,6 +104,14 @@ export default function AuthenticatedLayout({ header, children }) {
 
     const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
 
+    const handleLogoutClick = () => {
+        setIsLogoutModalOpen(true);
+    };
+
+    const handleCancelLogout = () => {
+        setIsLogoutModalOpen(false);
+    };
+
     return (
         <div className="min-h-screen bg-gray-50">
             <nav className="bg-white shadow-md">
@@ -127,14 +141,12 @@ export default function AuthenticatedLayout({ header, children }) {
                             <span className="text-gray-700 font-medium">
                                 {user.username}
                             </span>
-                            <Link
-                                href={route("logout")}
-                                method="post"
-                                as="button"
+                            <button
+                                onClick={handleLogoutClick}
                                 className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-800 transition-all duration-200 shadow-md"
                             >
                                 Log Out
-                            </Link>
+                            </button>
                         </div>
 
                         <div className="-me-2 flex items-center sm:hidden">
@@ -191,18 +203,46 @@ export default function AuthenticatedLayout({ header, children }) {
                             <div className="text-sm text-gray-500 mb-3">
                                 {user.username}
                             </div>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route("logout")}
-                                as="button"
+                            <button
+                                onClick={handleLogoutClick}
                                 className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-800 transition-all duration-200 w-full"
                             >
                                 Log Out
-                            </ResponsiveNavLink>
+                            </button>
                         </div>
                     </div>
                 </div>
             </nav>
+
+            {/* Logout Confirmation Modal */}
+            {isLogoutModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all duration-300 scale-100">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                            Konfirmasi Logout
+                        </h3>
+                        <p className="text-gray-600 mb-6 text-center">
+                            Apakah Anda yakin ingin keluar dari akun Anda?
+                        </p>
+                        <div className="flex justify-center space-x-4">
+                            <button
+                                onClick={handleCancelLogout}
+                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-all duration-200"
+                            >
+                                Batal
+                            </button>
+                            <Link
+                                href={route("logout")}
+                                method="post"
+                                as="button"
+                                className="bg-gradient-to-r from-red-500 to-red-700 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-800 transition-all duration-200"
+                            >
+                                Logout
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="flex min-h-screen bg-gray-50">
                 <Sidebar

@@ -89,8 +89,8 @@ export default function UpdateProfileInformation({
         <section className={className}>
             <header className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    <User size={24} className="text-blue-500" /> Profile
-                    Information
+                    <User size={24} className="text-blue-500" /> Informasi
+                    Profil
                 </h2>
                 <p className="mt-2 text-sm text-gray-500">
                     Update data profil kamu disini !

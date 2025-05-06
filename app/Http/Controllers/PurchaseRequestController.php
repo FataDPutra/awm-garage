@@ -61,6 +61,45 @@ private function sendStatusNotification($purchaseRequest, $statusMessage)
     }
 }
 
+/**
+     * Mengirim notifikasi WhatsApp ke Admin berdasarkan status PurchaseRequest
+     */
+    private function sendAdminStatusNotification($purchaseRequest, $statusMessage)
+    {
+        $admin = User::where('role', 'admin')->first();
+        if (!$admin || !$admin->phone_verified_at) {
+            \Log::info('Notifikasi ke Admin tidak dikirim karena nomor belum diverifikasi atau Admin tidak ditemukan', ['admin_id' => $admin?->id]);
+            return;
+        }
+
+        $userkey = env('ZENZIVA_USERKEY');
+        $passkey = env('ZENZIVA_PASSKEY');
+        $message = "Halo Admin, permintaan pemesanan (ID: {$purchaseRequest->id}) dari {$purchaseRequest->user->full_name} telah diperbarui: {$statusMessage} Silahkan periksa di http://awmgarage.com";
+        $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
+
+        $response = Http::asForm()->post($url, [
+            'userkey' => $userkey,
+            'passkey' => $passkey,
+            'to' => $admin->phone,
+            'message' => $message,
+        ]);
+
+        $result = $response->json();
+
+        if ($result && $result['status'] != '1') {
+            \Log::warning('Gagal mengirim notifikasi ke Admin', [
+                'admin_id' => $admin->id,
+                'phone' => $admin->phone,
+                'response' => $result,
+            ]);
+        } else {
+            \Log::info('Notifikasi ke Admin berhasil dikirim', [
+                'admin_id' => $admin->id,
+                'phone' => $admin->phone,
+            ]);
+        }
+    }
+
 public function index()
 {
     $user = Auth::user();
@@ -96,7 +135,7 @@ public function index()
         $request->validate([
             'service_id' => 'required|exists:services,id',
             'description' => 'required|string',
-            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'weight' => 'required|numeric|min:0.1|max:999.99',
             'source_use_account_address' => 'required|boolean',
             'destination_use_account_address' => 'required|boolean',
@@ -117,7 +156,32 @@ public function index()
             'destination_address.zip_code' => 'required_if:destination_use_account_address,false|string',
             'destination_address.address_details' => 'nullable|string',
             'additionals' => 'nullable|array', // [CHANGED] Validasi untuk additionals
-            'additionals.*.id' => 'required_with:additionals|exists:service_additionals,id',        ]);
+            'additionals.*.id' => 'required_with:additionals|exists:service_additionals,id',],[
+    'required' => 'Kolom :attribute wajib diisi.',
+    'required_if' => 'Kolom :attribute wajib diisi ketika tidak menggunakan alamat akun.',
+    'string' => 'Kolom :attribute harus berupa teks.',
+    'numeric' => 'Kolom :attribute harus berupa angka.',
+    'min' => [
+        'string' => 'Kolom :attribute minimal :min karakter.',
+        'numeric' => 'Kolom :attribute minimal :min.',
+    ],
+    'max' => [
+        'string' => 'Kolom :attribute maksimal :max karakter.',
+        'file' => 'Kolom :attribute maksimal :max KB.',
+    ],
+    'image' => 'Kolom :attribute harus berupa gambar.',
+    'mimes' => 'Kolom :attribute harus berformat: :values.',
+    'size' => 'Kolom :attribute harus :size karakter.',
+    'exists' => 'Kolom :attribute tidak valid.',
+    'photos.*.max' => 'Setiap foto maksimal 2MB.',
+    'service_id.required' => 'Silakan pilih layanan yang diinginkan.',
+    'description.required' => 'Silakan deskripsikan kebutuhan Anda.',
+    'weight.required' => 'Silakan masukkan berat barang.',
+    'shipping_to_admin_selection.required' => 'Silakan pilih opsi pengiriman ke admin.',
+    'shipping_to_customer_preference.required' => 'Silakan pilih preferensi pengiriman ke pelanggan.',
+    'source_address.zip_code.size' => 'Kode pos harus 5 digit.',
+    'destination_address.zip_code.size' => 'Kode pos harus 5 digit.',
+]);
 
         if ($request->source_use_account_address && !$user->zip_code) {
             return back()->withErrors(['source_address.zip_code' => 'Your account does not have a valid postal code. Please update your profile.']);
@@ -201,6 +265,7 @@ public function index()
         ]);
 
         $this->sendStatusNotification($purchaseRequest, "Permintaan Anda sedang menunggu peninjauan oleh admin untuk perhitungan estimasi biaya.");
+        $this->sendAdminStatusNotification($purchaseRequest, "Pelanggan {$user->full_name} telah membuat permintaan baru (ID: {$purchaseRequest->id}). Silahkan tinjau.");
 
         return redirect()->route('purchase_requests.index')->with('success', 'Purchase Request created successfully.');
     }
@@ -390,7 +455,7 @@ public function index()
     $request->validate([
         'service_id' => 'required|exists:services,id',
         'description' => 'required|string',
-        'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         'weight' => 'required|numeric|min:0.1|max:999.99',
         'source_use_account_address' => 'required|boolean',
         'destination_use_account_address' => 'required|boolean',
@@ -479,6 +544,7 @@ public function index()
     ]);
 
     $this->sendStatusNotification($purchaseRequest, "Permintaan pemesanan anda telah diperbarui.");
+    $this->sendAdminStatusNotification($purchaseRequest, "Pelanggan {$user->full_name} telah mengubah permintaan (ID: {$purchaseRequest->id}). Silahkan tinjau kembali.");
 
     return redirect()->route('purchase_requests.show', $id)
         ->with('success', 'Purchase Request updated successfully.');

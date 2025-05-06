@@ -13,25 +13,25 @@ export default function Edit({ auth, mustVerifyEmail, status, user }) {
     const sections = [
         {
             id: "profile",
-            title: "Profile Information",
+            title: "Informasi Profil",
             component: UpdateProfileInformationForm,
             props: { mustVerifyEmail, status, user },
         },
         {
             id: "phone",
-            title: "Verify Phone",
+            title: "Verifikasi Nomor Telepon",
             component: VerifyPhoneForm,
             props: { user },
         },
         {
             id: "password",
-            title: "Update Password",
+            title: "Ubah Password",
             component: UpdatePasswordForm,
             props: {},
         },
         {
             id: "delete",
-            title: "Delete Account",
+            title: "Hapus Akun",
             component: DeleteUserForm,
             props: {},
         },

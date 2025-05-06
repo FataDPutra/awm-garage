@@ -22,7 +22,7 @@ export default function Index({ services, auth }) {
         <AuthenticatedLayout
             auth={auth}
             header={
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 animate-fade-in animate-pulse">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 animate-fade-in">
                     <h2 className="text-3xl font-bold text-blue-600 flex items-center">
                         <Paintbrush
                             size={28}
@@ -30,12 +30,10 @@ export default function Index({ services, auth }) {
                         />
                         Daftar Layanan
                     </h2>
-
                     <Link
                         href={route("services.create")}
-                        className="relative bg-gradient-to-r from-blue-500 to-blue-700 text-white px-5 py-2.5 rounded-xl shadow-md hover:from-blue-600 hover:to-blue-800 transition-all duration-300 flex items-center gap-2 group overflow-hidden"
+                        className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-2 rounded-lg hover:from-blue-600 hover:to-blue-800 transition-all duration-300 flex items-center gap-2"
                     >
-                        <span className="absolute inset-0 w-full h-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
                         <PlusCircle size={20} /> Tambah Layanan
                     </Link>
                 </div>

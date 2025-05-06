@@ -20,7 +20,7 @@ return new class extends Migration
     {
         Schema::table('payments', function (Blueprint $table) {
             // Kembalikan ke string(50) dan not nullable jika rollback
-            $table->string('payment_method', 50)->nullable(false)->change();
+            $table->string('payment_method', 50)->nullable()->change();
         });
     }
 };

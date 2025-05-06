@@ -1,11 +1,17 @@
 import { Inertia } from "@inertiajs/inertia";
 
 export default function PaymentButton({ order }) {
+    // Check if the order is not in the correct state or if a full payment is already successful
     if (
         order.customer_confirmation !== "approved" ||
-        order.status !== "waiting_for_payment"
-    )
+        order.status !== "waiting_for_payment" ||
+        // Check if any payment has payment_status of 'success' (full payment)
+        order.offerPrice?.payments?.some(
+            (payment) => payment.payment_status === "success"
+        )
+    ) {
         return null;
+    }
 
     const handleFull = () => {
         Inertia.get(`/payments/${order.offer_price.id}/payment-full`);

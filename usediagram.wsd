@@ -1,0 +1,396 @@
+@startuml
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 30
+top to bottom direction
+
+' ========== ENTITIES ==========
+class User {
+  +id: bigint
+  +username: string
+  +password: string
+  +role: string
+  +email: string
+  +full_name: string
+  +phone: string
+  +address: string
+  +province_name: string
+  +city_name: string
+  +district_name: string
+  +subdistrict_name: string
+  +zip_code: string
+  +address_details: string
+  +latitude: decimal
+  +longitude: decimal
+  +phone_verified_at: timestamp
+  +remember_token: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +orders(): HasMany<Order>
+  +purchaseRequests(): HasMany<PurchaseRequest>
+}
+
+class Service {
+  +id: bigint
+  +service_name: string
+  +description: text
+  +base_price: decimal
+  +deleted_at: timestamp
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +purchaseRequests(): HasMany<PurchaseRequest>
+  +additionals(): HasMany<ServiceAdditional>
+}
+
+class AdditionalType {
+  +id: bigint
+  +name: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +serviceAdditionals(): HasMany<ServiceAdditional>
+}
+
+class ServiceAdditional {
+  +id: bigint
+  +service_id: bigint
+  +additional_type_id: bigint
+  +name: string
+  +image_path: string
+  +additional_price: decimal
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +service(): BelongsTo<Service>
+  +additionalType(): BelongsTo<AdditionalType>
+}
+
+class PurchaseRequest {
+  +id: bigint
+  +user_id: bigint
+  +service_id: bigint
+  +description: text
+  +photo_path: json
+  +weight: decimal
+  +shipping_cost_to_admin: decimal
+  +shipping_to_admin_details: json
+  +source_address: json
+  +destination_address: json
+  +shipping_to_customer_preference: json
+  +additional_details: json
+  +status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +user(): BelongsTo<User>
+  +service(): BelongsTo<Service>
+  +offerPrice(): HasOne<OfferPrice>
+}
+
+class OfferPrice {
+  +id: bigint
+  +pr_id: bigint
+  +service_price: decimal
+  +dp_amount: decimal
+  +estimation_days: integer
+  +shipping_cost_to_customer: decimal
+  +shipping_to_customer_details: json
+  +total_price: decimal
+  +status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +purchaseRequest(): BelongsTo<PurchaseRequest>
+  +order(): HasOne<Order>
+  +payments(): HasMany<Payment>
+}
+
+class Order {
+  +order_id: string
+  +offerprice_id: bigint
+  +completed_photo_path: json
+  +shipping_receipt: string
+  +shipping_receipt_customer: string
+  +shipping_proof_customer: string
+  +status: string
+  +customer_confirmation: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +offerPrice(): BelongsTo<OfferPrice>
+  +complains(): HasMany<OrderComplain>
+  +shipping(): HasOne<Shipping>
+  +reviews(): HasMany<Review>
+}
+
+class OrderComplain {
+  +id: bigint
+  +order_id: string
+  +customer_feedback: text
+  +revised_photo_path: json
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +order(): BelongsTo<Order>
+}
+
+class Payment {
+  +id: bigint
+  +offerprice_id: bigint
+  +amount: decimal
+  +payment_method: string
+  +payment_type: string
+  +transaction_id: string
+  +payment_status: string
+  +payment_time: timestamp
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +offerPrice(): BelongsTo<OfferPrice>
+}
+
+class Shipping {
+  +shipping_id: bigint
+  +order_id: string
+  +courier_code: string
+  +courier_name: string
+  +courier_service: string
+  +tracking_number: string
+  +shipping_date: timestamp
+  +received_date: timestamp
+  +status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +order(): BelongsTo<Order>
+}
+
+class Location {
+  +id: bigint
+  +label: string
+  +province_name: string
+  +city_name: string
+  +district_name: string
+  +subdistrict_name: string
+  +zip_code: string
+  +created_at: timestamp
+  +updated_at: timestamp
+}
+
+class Review {
+  +id: bigint
+  +order_id: string
+  +rating: integer
+  +review: text
+  +media_paths: json
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +order(): BelongsTo<Order>
+}
+
+class Otp {
+  +id: bigint
+  +user_id: bigint
+  +phone: string
+  +code: string
+  +expires_at: timestamp
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +user(): BelongsTo<User>
+}
+
+' ========== RELATIONSHIPS ==========
+User "1" -- "*" PurchaseRequest
+User "1" -- "*" Order : via purchaseRequest.offerPrice
+User "1" -- "1" Otp
+
+Service "1" -- "*" PurchaseRequest
+Service "1" -- "*" ServiceAdditional
+
+AdditionalType "1" -- "*" ServiceAdditional
+
+PurchaseRequest "1" -- "1" OfferPrice
+PurchaseRequest "1" -- "0..1" Order : via offerPrice
+
+OfferPrice "1" -- "1" Order
+OfferPrice "1" -- "*" Payment
+
+Order "1" -- "*" OrderComplain
+Order "1" -- "1" Shipping
+Order "1" -- "*" Review
+
+' ========== CONTROLLERS ==========
+class AuthenticatedSessionController {
+  +create(): Response
+  +store(LoginRequest): RedirectResponse
+  +destroy(Request): RedirectResponse
+}
+
+class RegisteredUserController {
+  +create(): Response
+  +store(Request): RedirectResponse
+}
+
+class PasswordResetLinkController {
+  +create(): Response
+  +store(Request): RedirectResponse
+}
+
+class NewPasswordController {
+  +create(Request): Response
+  +store(Request): RedirectResponse
+}
+
+class PasswordController {
+  +update(Request): RedirectResponse
+}
+
+class ProfileController {
+  +edit(Request): Response
+  +update(Request)
+  +sendOtp(Request)
+  +verifyOtp(Request)
+  +destroy(Request)
+}
+
+class ServiceController {
+  +index()
+  +create()
+  +store(Request)
+  +edit($id)
+  +update(Request, $id)
+  +destroy($id)
+}
+
+class PurchaseRequestController {
+  +index()
+  +create()
+  +store(Request)
+  +show($id)
+  +edit($id)
+  +update(Request, $id)
+  +acceptOffer($id)
+  +rejectOffer($id)
+  +adminIndex()
+  +showAdmin($id)
+  +reject($id)
+  +calculateShippingCost(Request)
+  +calculateShippingCostToCustomer(Request)
+}
+
+class OfferPriceController {
+  +storeOfferPrice(Request, $id)
+  +updateOfferPrice(Request, $id)
+}
+
+class OrderController {
+  +index()
+  +show($order_id)
+  +confirmReceived($order_id)
+  +uploadCompletedPhoto(Request, $order_id)
+  +uploadRevisionPhoto(Request, $order_id)
+  +markAsReadyToShip($order_id)
+  +indexCustomer()
+  +showCustomer($order_id)
+  +confirmShipmentCustomer(Request, $order_id)
+  +confirmCustomerOrder(Request, $order_id)
+}
+
+class PaymentController {
+  +createDP($offerprice_id)
+  +storeDP(Request)
+  +createFull($offerPriceId)
+  +storeFull(Request)
+  +handleCallback(Request)
+}
+
+class ShippingController {
+  +index()
+  +show($shipping_id)
+  +store(Request, $order_id)
+  +markAsDelivered($shipping_id)
+  +createShipment(Request, $order_id)
+  +confirmReceivedCustomer(Request, $order_id)
+}
+
+class ReviewController {
+  +storeReview(Request, $order_id)
+  +index()
+}
+
+class ReportController {
+  +index(Request)
+  +exportPDF(Request)
+}
+
+class LocationController {
+  +search(Request)
+}
+
+class AdditionalTypeController {
+  +store(Request)
+}
+
+class DashboardController {
+  +index()
+}
+
+' ========== CONTROLLER RELATIONSHIPS ==========
+AuthenticatedSessionController ..> User
+RegisteredUserController ..> User
+ProfileController ..> User
+ProfileController ..> Otp
+
+ServiceController ..> Service
+ServiceController ..> ServiceAdditional
+ServiceController ..> AdditionalType
+
+PurchaseRequestController ..> PurchaseRequest
+PurchaseRequestController ..> User
+PurchaseRequestController ..> Service
+PurchaseRequestController ..> OfferPrice
+PurchaseRequestController ..> Location
+
+OfferPriceController ..> OfferPrice
+OfferPriceController ..> PurchaseRequest
+
+OrderController ..> Order
+OrderController ..> OfferPrice
+OrderController ..> PurchaseRequest
+OrderController ..> OrderComplain
+OrderController ..> Review
+
+PaymentController ..> Payment
+PaymentController ..> OfferPrice
+PaymentController ..> Order
+
+ShippingController ..> Shipping
+ShippingController ..> Order
+ShippingController ..> OfferPrice
+ShippingController ..> PurchaseRequest
+
+ReviewController ..> Review
+ReviewController ..> Order
+
+ReportController ..> Order
+ReportController ..> OfferPrice
+ReportController ..> PurchaseRequest
+
+LocationController ..> Location
+
+AdditionalTypeController ..> AdditionalType
+
+DashboardController ..> Order
+DashboardController ..> OfferPrice
+DashboardController ..> PurchaseRequest
+DashboardController ..> User
+
+PasswordResetLinkController ..> User
+NewPasswordController ..> User
+PasswordController ..> User
+
+@enduml

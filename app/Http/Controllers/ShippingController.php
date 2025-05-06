@@ -58,6 +58,44 @@ class ShippingController extends Controller
         }
     }
 
+    private function sendAdminStatusNotification($order, $statusMessage)
+    {
+        $admin = User::where('role', 'admin')->first();
+        if (!$admin || !$admin->phone_verified_at) {
+            \Log::info('Notifikasi ke Admin tidak dikirim karena nomor belum diverifikasi atau Admin tidak ditemukan', ['admin_id' => $admin?->id]);
+            return;
+        }
+
+        $userkey = env('ZENZIVA_USERKEY');
+        $passkey = env('ZENZIVA_PASSKEY');
+        $message = "Halo Admin, pesanan (ID: {$order->order_id}) dari {$order->offerPrice->purchaseRequest->user->full_name} telah diperbarui: {$statusMessage} Silahkan periksa di http://awmgarage.com";
+        $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
+
+        $response = Http::asForm()->post($url, [
+            'userkey' => $userkey,
+            'passkey' => $passkey,
+            'to' => $admin->phone,
+            'message' => $message,
+        ]);
+
+        $result = $response->json();
+
+        if ($result && $result['status'] != '1') {
+            \Log::warning('Gagal mengirim notifikasi ke Admin', [
+                'admin_id' => $admin->id,
+                'phone' => $admin->phone,
+                'response' => $result,
+            ]);
+        } else {
+            \Log::info('Notifikasi ke Admin berhasil dikirim', [
+                'admin_id' => $admin->id,
+                'phone' => $admin->phone,
+            ]);
+        }
+    }
+
+    
+
     private function getCourierName($courierCode)
     {
         $courierNames = [
@@ -223,6 +261,7 @@ class ShippingController extends Controller
             });
 
             $this->sendStatusNotification($order, "Anda telah mengonfirmasi barang telah diterima. Mohon berikan rating untuk pesanan Anda. Terima Kasih telah memesanan layanan kami :)");
+            $this->sendAdminStatusNotification($order, "Pelanggan {$order->offerPrice->purchaseRequest->user->full_name} telah mengkonfirmasi penerimaan pesanan (ID: {$order->order_id}).");
 
             \Log::info('Proses confirmReceivedCustomer selesai', ['order_id' => $order_id]);
 

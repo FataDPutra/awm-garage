@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Head, useForm, usePage } from "@inertiajs/react";
+import { Head, useForm, usePage, Link } from "@inertiajs/react";
 import axios from "axios";
 import debounce from "lodash/debounce";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Plus } from "lucide-react";
-import { X } from "lucide-react";
-import { FileText } from "lucide-react";
-import { AlertTriangle } from "lucide-react";
+import { Plus, X, FileText, AlertTriangle } from "lucide-react";
 import ServiceSelection from "@/Components/ServiceSelection";
 import AdditionalOptions from "@/Components/AdditionalOptions";
 import DescriptionInput from "@/Components/DescriptionInput";
@@ -26,15 +23,15 @@ export default function Create() {
         weight: "",
         shipping_cost_to_admin: 0,
         shipping_to_admin_selection: null,
-        source_use_account_address: true, // Default: "Gunakan alamat akun saya" dipilih
-        source_address: {}, // Kosong saat pertama kali dibuka
-        destination_use_account_address: true, // Default: "Gunakan alamat akun saya" dipilih
-        destination_address: {}, // Kosong saat pertama kali dibuka
+        source_use_account_address: true,
+        source_address: {},
+        destination_use_account_address: true,
+        destination_address: {},
         shipping_to_customer_preference: null,
         additionals: [],
     });
     const [showLocationAlert, setShowLocationAlert] = useState(true);
-
+    const [showProfileAlert, setShowProfileAlert] = useState(true);
     const [photoPreviews, setPhotoPreviews] = useState([]);
     const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
     const [shippingOptionsToAdmin, setShippingOptionsToAdmin] = useState([]);
@@ -47,6 +44,24 @@ export default function Create() {
     const [destinationLocations, setDestinationLocations] = useState([]);
     const [formErrors, setFormErrors] = useState([]);
     const [availableAdditionals, setAvailableAdditionals] = useState([]);
+
+    // Check if profile address data is incomplete
+    const isProfileIncomplete =
+        !auth.user?.address ||
+        !auth.user?.zip_code ||
+        !auth.user?.province_name ||
+        !auth.user?.city_name ||
+        !auth.user?.district_name ||
+        !auth.user?.subdistrict_name ||
+        !auth.user?.address_details;
+
+    useEffect(() => {
+        if (isProfileIncomplete) {
+            setShowProfileAlert(true);
+        } else {
+            setShowProfileAlert(false);
+        }
+    }, [auth.user]);
 
     const resetAddress = (type) => {
         const emptyAddress = {
@@ -67,22 +82,6 @@ export default function Create() {
             setDestinationLocations([]);
         }
     };
-
-    useEffect(() => {
-        if (
-            (data.source_use_account_address ||
-                data.destination_use_account_address) &&
-            !auth.user?.zip_code
-        ) {
-            alert(
-                "Silakan perbarui profil Anda dengan kode pos yang valid untuk menggunakan alamat akun."
-            );
-        }
-    }, [
-        data.source_use_account_address,
-        data.destination_use_account_address,
-        auth.user,
-    ]);
 
     useEffect(() => {
         if (data.service_id) {
@@ -253,8 +252,7 @@ export default function Create() {
                 "image/jpg",
                 "image/gif",
             ].includes(file.type);
-            const isValidSize = file.size <= 2 * 1024 * 1024;
-            return isValidType && isValidSize;
+            return isValidType;
         });
         const newPhotos = [...data.photos, ...validFiles];
         setData("photos", newPhotos);
@@ -319,6 +317,10 @@ export default function Create() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (isProfileIncomplete) {
+            setShowProfileAlert(true);
+            return;
+        }
         const formData = new FormData();
         formData.append("service_id", data.service_id);
         formData.append("description", data.description);
@@ -401,8 +403,46 @@ export default function Create() {
             }
         >
             <Head title="Buat Pesanan" />
-            {/* Beautiful Modal Alert */}
-            {showLocationAlert && (
+            {/* Profile Incomplete Alert */}
+            {showProfileAlert && isProfileIncomplete && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
+                        <div className="p-6 relative">
+                            <button
+                                onClick={() => setShowProfileAlert(false)}
+                                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                            >
+                                <X size={24} />
+                            </button>
+                            <div className="flex flex-col items-center text-center">
+                                <div className="bg-yellow-100 p-3 rounded-full mb-4">
+                                    <AlertTriangle
+                                        size={48}
+                                        className="text-yellow-600"
+                                    />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                                    Data Profil Belum Lengkap
+                                </h3>
+                                <div className="text-gray-600 mb-6 space-y-2">
+                                    <p>
+                                        Mohon lengkapi data alamat Anda di
+                                        profil sebelum melakukan pemesanan.
+                                    </p>
+                                </div>
+                                <Link
+                                    href={route("profile.edit")}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200"
+                                >
+                                    Ke Halaman Profil
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Jawa Tengah Location Alert */}
+            {!showProfileAlert && showLocationAlert && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
                         <div className="p-6 relative">
@@ -412,7 +452,6 @@ export default function Create() {
                             >
                                 <X size={24} />
                             </button>
-
                             <div className="flex flex-col items-center text-center">
                                 <div className="bg-yellow-100 p-3 rounded-full mb-4">
                                     <AlertTriangle
@@ -420,11 +459,9 @@ export default function Create() {
                                         className="text-yellow-600"
                                     />
                                 </div>
-
                                 <h3 className="text-2xl font-bold text-gray-800 mb-2">
                                     Informasi Penting
                                 </h3>
-
                                 <div className="text-gray-600 mb-6 space-y-2">
                                     <p>
                                         Bengkel kami berlokasi di{" "}
@@ -439,7 +476,6 @@ export default function Create() {
                                         tinggi.
                                     </p>
                                 </div>
-
                                 <button
                                     onClick={() => setShowLocationAlert(false)}
                                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200"

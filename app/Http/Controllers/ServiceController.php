@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Service;
 use App\Models\ServiceAdditional;
 use App\Models\AdditionalType;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
@@ -16,6 +17,86 @@ class ServiceController extends Controller
     {
         $services = Service::with('additionals.additionalType')->get();
         return Inertia::render('Services/Index', ['services' => $services]);
+    }
+
+    public function customerIndex()
+    {
+        $services = Service::select('id', 'service_name', 'description', 'base_price')->get();
+        return Inertia::render('Services/CustomerServices', ['services' => $services]);
+    }
+
+    public function show($id)
+    {
+        $service = Service::with('additionals.additionalType')->findOrFail($id);
+        $additionalTypes = AdditionalType::all();
+        $completedPhotos = Order::whereHas('offerPrice.purchaseRequest', function ($query) use ($id) {
+            $query->where('service_id', $id);
+        })
+            ->whereNotNull('completed_photo_path')
+            ->pluck('completed_photo_path')
+            ->flatMap(function ($photos) {
+                return is_array($photos) ? $photos : [];
+            })
+            ->filter()
+            ->values()
+            ->toArray();
+
+        Log::info('Service data for show:', [
+            'service_id' => $service->id,
+            'service_name' => $service->service_name,
+            'additionals' => $service->additionals->map(function ($additional) {
+                return [
+                    'id' => $additional->id,
+                    'name' => $additional->name,
+                    'additional_type_id' => $additional->additional_type_id,
+                    'additional_type_name' => optional($additional->additionalType)->name,
+                ];
+            })->toArray(),
+            'additionalTypes' => $additionalTypes->toArray(),
+        ]);
+
+        return Inertia::render('Services/ServiceDetail', [
+            'service' => $service,
+            'additionalTypes' => $additionalTypes,
+            'completedPhotos' => $completedPhotos,
+        ]);
+    }
+
+    public function adminShow($id)
+    {
+        $service = Service::with('additionals.additionalType')->findOrFail($id);
+        $additionalTypes = AdditionalType::all();
+        $completedPhotos = Order::whereHas('offerPrice.purchaseRequest', function ($query) use ($id) {
+            $query->where('service_id', $id);
+        })
+            ->whereNotNull('completed_photo_path')
+            ->pluck('completed_photo_path')
+            ->flatMap(function ($photos) {
+                return is_array($photos) ? $photos : [];
+            })
+            ->filter()
+            ->values()
+            ->toArray();
+
+        Log::info('Service data for admin show:', [
+            'service_id' => $service->id,
+            'service_name' => $service->service_name,
+            'additionals' => $service->additionals->map(function ($additional) {
+                return [
+                    'id' => $additional->id,
+                    'name' => $additional->name,
+                    'additional_type_id' => $additional->additional_type_id,
+                    'additional_type_name' => optional($additional->additionalType)->name,
+                ];
+            })->toArray(),
+            'additionalTypes' => $additionalTypes->toArray(),
+        ]);
+
+        return Inertia::render('Services/ServiceAdminDetail', [
+            'service' => $service,
+            'additionalTypes' => $additionalTypes,
+            'completedPhotos' => $completedPhotos,
+        ]);
     }
 
     public function create()
@@ -50,6 +131,10 @@ class ServiceController extends Controller
                 if (!$additionalTypeId && $additional['new_type']) {
                     $newType = AdditionalType::firstOrCreate(['name' => $additional['new_type']]);
                     $additionalTypeId = $newType->id;
+                }
+                if (!$additionalTypeId) {
+                    Log::warning('Skipping additional due to null additional_type_id:', ['additional' => $additional]);
+                    continue;
                 }
 
                 $imagePath = null;
@@ -136,9 +221,15 @@ class ServiceController extends Controller
                         ->store('service_additionals', 'public');
                 }
 
+                $additionalTypeId = $additional['additional_type_id'] ?? ($existingAdditional ? $existingAdditional->additional_type_id : null);
+                if (!$additionalTypeId) {
+                    Log::warning('Skipping additional due to null additional_type_id:', ['additional' => $additional]);
+                    continue;
+                }
+
                 $data = [
                     'service_id' => $service->id,
-                    'additional_type_id' => $additional['additional_type_id'] ?? ($existingAdditional ? $existingAdditional->additional_type_id : null),
+                    'additional_type_id' => $additionalTypeId,
                     'name' => $additional['name'] ?? ($existingAdditional ? $existingAdditional->name : ''),
                     'image_path' => $imagePath,
                     'additional_price' => $additional['additional_price'] ?? ($existingAdditional ? $existingAdditional->additional_price : 0),
@@ -161,7 +252,7 @@ class ServiceController extends Controller
     public function destroy($id)
     {
         $service = Service::findOrFail($id);
-        $service->delete(); // Soft delete service
+        $service->delete();
 
         return redirect()->route('services.index')
             ->with('success', 'Service deleted successfully.');

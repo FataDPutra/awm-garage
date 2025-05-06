@@ -13,7 +13,7 @@ import ShippingConfirmationSection from "@/Components/Customer/Orders/ShippingCo
 import ShippingInfoSection from "@/Components/Customer/Orders/ShippingInfoSection";
 import ReviewsSection from "@/Components/Customer/Orders/ReviewsSection";
 
-export default function CustomerShow({ order, auth }) {
+export default function CustomerShow({ order, auth, flash }) {
     const { data, setData, post, processing, errors } = useForm({
         shipping_receipt_customer: order.shipping_receipt_customer || "",
         shipping_proof_customer: null,

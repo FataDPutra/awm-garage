@@ -68,6 +68,10 @@
             // ✅ Routes untuk **Customer** (Hanya Customer yang bisa mengakses)
             Route::middleware(['role:customer'])->group(function () {
 
+                Route::get('/customer/services', [ServiceController::class, 'customerIndex'])->name('customer.services');
+                Route::get('/customer/services/{id}', [ServiceController::class, 'show'])->name('customer.services.show');
+
+
                 Route::get('/purchase-requests', [PurchaseRequestController::class, 'index'])->name('purchase_requests.index');
                 Route::get('/purchase-requests/create', [PurchaseRequestController::class, 'create'])->name('purchase-requests.create');
                 Route::post('/purchase-requests', [PurchaseRequestController::class, 'store'])->name('purchase_requests.store');
@@ -138,16 +142,17 @@
                 Route::post('/admin/shippings/{shipping_id}/mark-delivered', [ShippingController::class, 'markAsDelivered'])->name('shippings.markAsDelivered');
             
                 // Admin - Services
+
+
                 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
                 Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
                 Route::post('/services/create', [ServiceController::class, 'store'])->name('services.store');
                 Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
                 Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
-
                 Route::post('/services/{service}', [ServiceController::class, 'update'])->name('services.update.post');
-
                 Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
-                
+                Route::get('/services/{id}', [ServiceController::class, 'adminShow'])->name('admin.services.show');
+
                 Route::post('/services', [AdditionalTypeController::class, 'store'])->name('additional-types.store');
 
                 Route::get('/purchaserequests', [PurchaseRequestController::class, 'adminIndex'])->name('admin.purchaserequests.index');

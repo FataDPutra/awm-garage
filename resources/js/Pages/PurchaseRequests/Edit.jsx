@@ -269,8 +269,9 @@ export default function Edit() {
                 "image/jpg",
                 "image/gif",
             ].includes(file.type);
-            const isValidSize = file.size <= 2 * 1024 * 1024;
-            return isValidType && isValidSize;
+            // const isValidSize = file.size <= 2 * 1024 * 1024;
+            // return isValidType && isValidSize;
+            return isValidType;
         });
         const newPhotos = [...data.photos, ...validFiles];
         setData("photos", newPhotos);

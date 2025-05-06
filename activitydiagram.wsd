@@ -1,0 +1,309 @@
+@startuml
+
+' Set layout direction to avoid curved or overlapping arrows
+left to right direction
+skinparam linetype ortho
+
+
+' Define Classes from Database Section
+class User {
+  +username: string
+  +password: string
+  +role: string
+  +email: string
+  +full_name: string
+  +phone: string
+  +address: string
+  +province_name: string
+  +city_name: string
+  +district_name: string
+  +subdistrict_name: string
+  +zip_code: string
+  +address_details: string
+  +latitude: float
+  +longitude: float
+  +phone_verified_at: timestamp
+  +orders(): HasMany
+  +purchaseRequests(): HasMany
+}
+
+class Service {
+  +service_name: string
+  +description: string
+  +base_price: float
+  +purchaseRequests(): HasMany
+  +additionals(): HasMany
+}
+
+class AdditionalType {
+  +name: string
+  +serviceAdditionals(): HasMany
+}
+
+class ServiceAdditional {
+  +service_id: int
+  +additional_type_id: int
+  +name: string
+  +image_path: string
+  +additional_price: float
+  +service(): BelongsTo
+  +additionalType(): BelongsTo
+}
+
+class Location {
+  +label: string
+  +province_name: string
+  +city_name: string
+  +district_name: string
+  +subdistrict_name: string
+  +zip_code: string
+}
+
+class Otp {
+  +user_id: int
+  +phone: string
+  +code: string
+  +expires_at: timestamp
+}
+
+class PurchaseRequest {
+  +user_id: int
+  +service_id: int
+  +description: string
+  +photo_path: array
+  +weight: float
+  +shipping_cost_to_admin: float
+  +shipping_to_admin_details: array
+  +source_address: array
+  +destination_address: array
+  +shipping_to_customer_preference: array
+  +additional_details: array
+  +status: string
+  +user(): BelongsTo
+  +service(): BelongsTo
+  +offerPrice(): HasOne
+}
+
+class OfferPrice {
+  +pr_id: int
+  +service_price: float
+  +dp_amount: float
+  +estimation_days: int
+  +shipping_cost_to_customer: float
+  +shipping_to_customer_details: array
+  +total_price: float
+  +status: string
+  +purchaseRequest(): BelongsTo
+  +order(): HasOne
+  +payments(): HasMany
+}
+
+class Order {
+  +order_id: string
+  +offerprice_id: int
+  +completed_photo_path: array
+  +shipping_receipt: string
+  +shipping_receipt_customer: string
+  +shipping_proof_customer: string
+  +status: string
+  +customer_confirmation: string
+  +complains(): HasMany
+  +offerPrice(): BelongsTo
+  +shipping(): HasOne
+  +reviews(): HasMany
+}
+
+class OrderComplain {
+  +order_id: string
+  +customer_feedback: string
+  +revised_photo_path: array
+  +order(): BelongsTo
+}
+
+class Payment {
+  +offerprice_id: int
+  +amount: float
+  +payment_method: string
+  +payment_type: string
+  +transaction_id: string
+  +payment_status: string
+  +payment_time: timestamp
+  +offerPrice(): BelongsTo
+}
+
+class Shipping {
+  +order_id: string
+  +courier_code: string
+  +courier_name: string
+  +courier_service: string
+  +tracking_number: string
+  +shipping_date: timestamp
+  +received_date: timestamp
+  +status: string
+  +order(): BelongsTo
+}
+
+class Review {
+  +order_id: string
+  +rating: int
+  +review: string
+  +media_paths: array
+  +order(): BelongsTo
+}
+
+' Define Relationships (Associations)
+User "1" -- "*" PurchaseRequest : has
+User "1" -- "*" Order : has
+Service "1" -- "*" PurchaseRequest : has
+Service "1" -- "*" ServiceAdditional : has
+AdditionalType "1" -- "*" ServiceAdditional : has
+PurchaseRequest "1" -- "1" OfferPrice : has
+OfferPrice "1" -- "1" Order : has
+OfferPrice "1" -- "*" Payment : has
+Order "1" -- "*" OrderComplain : has
+Order "1" -- "1" Shipping : has
+Order "1" -- "*" Review : has
+
+' Define Classes from MVC Section (Controllers)
+class AuthenticatedSessionController {
+  +create(): Response
+  +store(LoginRequest $request): RedirectResponse
+  +destroy(Request $request): RedirectResponse
+}
+
+class NewPasswordController {
+  +create(Request $request): Response
+  +store(Request $request): RedirectResponse
+}
+
+class ConfirmablePasswordController {
+  +show(): Response
+  +store(Request $request): RedirectResponse
+}
+
+class PasswordResetLinkController {
+  +create(): Response
+  +store(Request $request): RedirectResponse
+}
+
+class RegisteredUserController {
+  +create(): Response
+  +store(Request $request)
+}
+
+class ProfileController {
+  +edit(Request $request): Response
+  +update(Request $request)
+  +sendOtp(Request $request)
+  +verifyOtp(Request $request)
+  +destroy(Request $request)
+}
+
+class LocationController {
+  +search(Request $request)
+}
+
+class DashboardController {
+  +index()
+}
+
+class ServiceController {
+  +index()
+  +customerIndex()
+  +show($id)
+  +adminShow($id)
+  +create()
+  +store(Request $request)
+  +edit($id)
+  +update(Request $request, $id)
+  +destroy($id)
+}
+
+class AdditionalTypeController {
+  +store(Request $request)
+}
+
+class PurchaseRequestController {
+  +index()
+  +create()
+  +store(Request $request)
+  +show($id)
+  +acceptOffer($id)
+  +rejectOffer($id)
+  +adminIndex()
+  +showAdmin($id)
+  +edit($id)
+  +update(Request $request, $id)
+  +reject($id)
+  +calculateShippingCost(Request $request)
+  +calculateShippingCostToCustomer(Request $request)
+}
+
+class OfferPriceController {
+  +storeOfferPrice(Request $request, $id)
+  +updateOfferPrice(Request $request, $id)
+}
+
+class OrderController {
+  +index()
+  +show($order_id)
+  +confirmReceived($order_id)
+  +uploadCompletedPhoto(Request $request, $order_id)
+  +uploadRevisionPhoto(Request $request, $order_id)
+  +indexCustomer()
+  +showCustomer($order_id)
+  +confirmShipmentCustomer(Request $request, $order_id)
+  +confirmCustomerOrder(Request $request, $order_id)
+}
+
+class PaymentController {
+  +createDP($offerprice_id)
+  +storeDP(Request $request)
+  +createFull($offerPriceId)
+  +storeFull(Request $request)
+  +handleCallback(Request $request)
+}
+
+class ShippingController {
+  +index()
+  +show($shipping_id)
+  +store(Request $request, $order_id)
+  +markAsDelivered($shipping_id)
+  +createShipment(Request $request, $order_id)
+  +confirmReceivedCustomer(Request $request, $order_id)
+}
+
+class ReviewController {
+  +storeReview(Request $request, $order_id)
+  +index()
+}
+
+class ReportController {
+  +index(Request $request)
+  +exportPDF(Request $request)
+}
+
+' Define Relationships between Controllers and Models (Dependencies)
+ProfileController --> User
+LocationController --> Location
+DashboardController --> Order
+ServiceController --> Service
+ServiceController --> ServiceAdditional
+AdditionalTypeController --> AdditionalType
+PurchaseRequestController --> PurchaseRequest
+PurchaseRequestController --> Service
+PurchaseRequestController --> User
+OfferPriceController --> OfferPrice
+OfferPriceController --> PurchaseRequest
+OrderController --> Order
+OrderController --> OfferPrice
+OrderController --> PurchaseRequest
+PaymentController --> Payment
+PaymentController --> OfferPrice
+ShippingController --> Shipping
+ShippingController --> Order
+ReviewController --> Review
+ReviewController --> Order
+ReportController --> Order
+
+@enduml

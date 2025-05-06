@@ -98,7 +98,7 @@ const ReviewSlide = () => {
                                                 loading="lazy"
                                                 onError={(e) =>
                                                     (e.target.src =
-                                                        "/portofolio/default.jpg")
+                                                        "/portofolio/default.png")
                                                 }
                                             />
                                         </div>

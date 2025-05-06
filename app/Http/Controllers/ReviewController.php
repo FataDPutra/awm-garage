@@ -105,7 +105,7 @@ public function index()
                 'id' => 'dummy_3',
                 'name' => 'Alice Johnson',
                 'comment' => 'Sandblasting cepat, rapi, dan hasilnya memuaskan. Bengkel ini benar-benar recommended!',
-                'image' => '/portofolio/portofolio3.jpg',
+                'image' => '/portofolio/portofolio3.jpeg',
                 'rating' => 5,
             ],
             [
@@ -125,7 +125,7 @@ public function index()
                 $imagePath = is_array($review->order->completed_photo_path) && !empty($review->order->completed_photo_path)
                     ? $review->order->completed_photo_path[0]
                     : null;
-                $imageUrl = $imagePath ? Storage::url($imagePath) : '/portofolio/default.jpg';
+                $imageUrl = $imagePath ? Storage::url($imagePath) : '/portofolio/default.png';
 
                 return [
                     'id' => $review->id,

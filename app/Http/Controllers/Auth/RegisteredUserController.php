@@ -29,23 +29,25 @@ class RegisteredUserController extends Controller
      * @throws \Illuminate\Validation\ValidationException
      */
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'username' => ['required', 'string', 'max:50', 'unique:users'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:admin,customer'],
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'username' => ['required', 'string', 'max:50', 'unique:users'],
+        'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        'role' => ['required', 'in:admin,customer'],
+    ], [
+        'password.confirmed' => 'Password dan konfirmasi password tidak sesuai.',
+    ]);
 
-        $user = User::create([
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-        ]);
+    $user = User::create([
+        'username' => $request->username,
+        'password' => Hash::make($request->password),
+        'role' => $request->role,
+    ]);
 
-        auth()->login($user);
+    auth()->login($user);
 
-        return redirect()->route('dashboard');
-    }
+    return redirect()->route('dashboard');
+}
 
 }

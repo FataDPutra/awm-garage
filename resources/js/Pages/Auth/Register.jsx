@@ -2,6 +2,9 @@ import { Head, Link, useForm } from "@inertiajs/react";
 import GuestLayout from "@/Layouts/GuestLayout";
 import CustomInput from "@/Components/CustomInput";
 import CustomButton from "@/Components/CustomButton";
+import { useState } from "react";
+import { FaEye } from "react-icons/fa";
+import { LuEyeClosed } from "react-icons/lu";
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -10,6 +13,10 @@ export default function Register() {
         password_confirmation: "",
         role: "customer",
     });
+
+    // State untuk toggle visibilitas password
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const submit = (e) => {
         e.preventDefault();
@@ -58,19 +65,32 @@ export default function Register() {
                     <CustomInput
                         id="password"
                         label="Password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={data.password}
                         onChange={(e) => setData("password", e.target.value)}
                         error={errors.password}
                         autoComplete="new-password"
                         required
-                    />
+                        inputClassName="pr-10"
+                    >
+                        <button
+                            type="button"
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                            onClick={() => setShowPassword(!showPassword)}
+                        >
+                            {showPassword ? (
+                                <LuEyeClosed className="h-5 w-5" />
+                            ) : (
+                                <FaEye className="h-5 w-5" />
+                            )}
+                        </button>
+                    </CustomInput>
 
                     {/* Confirm Password Field */}
                     <CustomInput
                         id="password_confirmation"
                         label="Konfirmasi Password"
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         value={data.password_confirmation}
                         onChange={(e) =>
                             setData("password_confirmation", e.target.value)
@@ -78,7 +98,22 @@ export default function Register() {
                         error={errors.password_confirmation}
                         autoComplete="new-password"
                         required
-                    />
+                        inputClassName="pr-10"
+                    >
+                        <button
+                            type="button"
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                            onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                            }
+                        >
+                            {showConfirmPassword ? (
+                                <LuEyeClosed className="h-5 w-5" />
+                            ) : (
+                                <FaEye className="h-5 w-5" />
+                            )}
+                        </button>
+                    </CustomInput>
 
                     {/* Actions */}
                     <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
