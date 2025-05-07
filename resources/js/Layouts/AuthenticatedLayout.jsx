@@ -13,7 +13,11 @@ import {
     BarChart2,
 } from "lucide-react";
 
-export default function AuthenticatedLayout({ header, children }) {
+export default function AuthenticatedLayout({
+    header,
+    children,
+    preferredActiveMenu,
+}) {
     const user = usePage().props.auth.user;
     const { url } = usePage();
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
@@ -111,6 +115,14 @@ export default function AuthenticatedLayout({ header, children }) {
     const handleCancelLogout = () => {
         setIsLogoutModalOpen(false);
     };
+
+    // Extract base path without query parameters
+    const getBasePath = (url) => {
+        return url.split("?")[0];
+    };
+
+    // Use preferredActiveMenu if provided, else fall back to base path
+    const activeMenuPath = preferredActiveMenu || getBasePath(url);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -250,7 +262,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     mobileOnly={false}
                     isCollapsed={isSidebarCollapsed}
                     toggleSidebar={toggleSidebar}
-                    currentPath={url}
+                    currentPath={activeMenuPath}
                 />
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 md:pb-0">
                     {header && (
@@ -266,7 +278,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     items={sidebarItems}
                     mobileOnly={true}
                     isCollapsed={false}
-                    currentPath={url}
+                    currentPath={activeMenuPath}
                 />
             </div>
         </div>

@@ -64,11 +64,14 @@ class PaymentController extends Controller
     public function createDP($offerprice_id)
     {
         $offerPrice = OfferPrice::with('purchaseRequest')->findOrFail($offerprice_id);
+        $order = Order::where('offerprice_id', $offerprice_id)->first();
 
         return Inertia::render('Payments/CreateDP', [
             'offerPrice' => $offerPrice,
             'purchaseRequest' => $offerPrice->purchaseRequest,
             'midtransClientKey' => env('MIDTRANS_CLIENT_KEY'),
+            'order' => $order ? ['id' => $order->id, 'status' => $order->status] : null,
+            'preferredActiveMenu' => $order ? '/orders' : '/purchase-requests',
         ]);
     }
 
@@ -111,11 +114,15 @@ class PaymentController extends Controller
                 'payment_time' => null,
             ]);
 
+            $order = Order::where('offerprice_id', $offerPrice->id)->first();
+
             return Inertia::render('Payments/CreateDP', [
                 'offerPrice' => $offerPrice,
                 'purchaseRequest' => $offerPrice->purchaseRequest,
                 'midtransClientKey' => env('MIDTRANS_CLIENT_KEY'),
                 'snapToken' => $snapToken,
+                'order' => $order ? ['id' => $order->id, 'status' => $order->status] : null,
+                'preferredActiveMenu' => '/orders', // After initiating DP payment, focus on orders
             ]);
         } catch (\Exception $e) {
             Log::error('Midtrans Error: ' . $e->getMessage());
@@ -130,12 +137,15 @@ class PaymentController extends Controller
         $dpPayment = Payment::where('offerprice_id', $offerPriceId)
             ->where('payment_type', 'dp')
             ->first();
+        $order = Order::where('offerprice_id', $offerPriceId)->first();
 
         return Inertia::render('Payments/CreateFull', [
             'offerPrice' => $offerPrice,
             'purchaseRequest' => $offerPrice->purchaseRequest,
             'dpPayment' => $dpPayment,
             'midtransClientKey' => env('MIDTRANS_CLIENT_KEY'),
+            'order' => $order ? ['id' => $order->id, 'status' => $order->status] : null,
+            'preferredActiveMenu' => $order ? '/orders' : '/purchase-requests',
         ]);
     }
 
@@ -178,12 +188,19 @@ class PaymentController extends Controller
                 'payment_time' => null,
             ]);
 
+            $dpPayment = Payment::where('offerprice_id', $offerPrice->id)
+                ->where('payment_type', 'dp')
+                ->first();
+            $order = Order::where('offerprice_id', $offerPrice->id)->first();
+
             return Inertia::render('Payments/CreateFull', [
                 'offerPrice' => $offerPrice,
                 'purchaseRequest' => $offerPrice->purchaseRequest,
-                'dpPayment' => Payment::where('offerprice_id', $offerPrice->id)->where('payment_type', 'dp')->first(),
+                'dpPayment' => $dpPayment,
                 'midtransClientKey' => env('MIDTRANS_CLIENT_KEY'),
                 'snapToken' => $snapToken,
+                'order' => $order ? ['id' => $order->id, 'status' => $order->status] : null,
+                'preferredActiveMenu' => '/orders', // After initiating full payment, focus on orders
             ]);
         } catch (\Exception $e) {
             Log::error('Midtrans Error: ' . $e->getMessage());
@@ -192,125 +209,125 @@ class PaymentController extends Controller
     }
 
     public function handleCallback(Request $request)
-{
-    Log::info('Midtrans callback hit', [
-        'url' => $request->fullUrl(),
-        'payload' => $request->all(),
-        'headers' => $request->headers->all(),
-    ]);
-
-    // Log semua data yang diterima dari Midtrans untuk debugging
-    Log::info('Callback received from Midtrans', $request->all());
-
-    // Tangani notifikasi tes dari Midtrans (order_id mengandung "payment_notif_test")
-    if (strpos($request->order_id, 'payment_notif_test') !== false) {
-        Log::info('Test notification received from Midtrans', ['order_id' => $request->order_id]);
-        return response()->json(['status' => 'success'], 200);
-    }
-
-    // Ambil server key dari environment variable
-    $serverKey = env('MIDTRANS_SERVER_KEY');
-
-    // Format gross_amount agar sesuai dengan yang dikirim Midtrans (contoh: "15000.00")
-    $grossAmount = number_format((float)$request->gross_amount, 2, '.', '');
-
-    // Hitung signature_key untuk validasi
-    $hashed = hash('sha512', $request->order_id . $request->status_code . $grossAmount . $serverKey);
-
-    // Validasi signature_key
-    if ($hashed !== $request->signature_key) {
-        Log::warning('Invalid signature key', [
-            'received_signature' => $request->signature_key,
-            'calculated_signature' => $hashed,
-            'order_id' => $request->order_id,
-            'status_code' => $request->status_code,
-            'gross_amount' => $grossAmount,
-        ]);
-        return response()->json(['error' => 'Invalid signature'], 403);
-    }
-
-    // Cari data pembayaran berdasarkan transaction_id (sama dengan order_id dari Midtrans)
-    $payment = Payment::where('transaction_id', $request->order_id)->first();
-    if (!$payment) {
-        Log::error('Payment not found for transaction_id', ['transaction_id' => $request->order_id]);
-        return response()->json(['error' => 'Payment not found'], 404);
-    }
-
-    // Ambil data offerPrice dari payment
-    $offerPrice = $payment->offerPrice;
-
-    // Update payment_method jika ada
-    if ($request->payment_type) {
-        $payment->update(['payment_method' => $request->payment_type]);
-    }
-
-    // Proses berdasarkan transaction_status dari Midtrans
-    if (in_array($request->transaction_status, ['capture', 'settlement'])) {
-        Log::info('Payment successful, updating status', [
-            'transaction_id' => $request->order_id,
-            'payment_type' => $payment->payment_type,
+    {
+        Log::info('Midtrans callback hit', [
+            'url' => $request->fullUrl(),
+            'payload' => $request->all(),
+            'headers' => $request->headers->all(),
         ]);
 
-        // Update status pembayaran berdasarkan tipe pembayaran (DP atau penuh)
-        $payment->update([
-            'payment_status' => $payment->payment_type === 'dp' ? 'paid' : 'success',
-            'payment_time' => now(),
-        ]);
+        // Log semua data yang diterima dari Midtrans untuk debugging
+        Log::info('Callback received from Midtrans', $request->all());
 
-        // Update status offerPrice dan purchaseRequest
-        $offerPrice->update(['status' => 'accepted']);
-        $offerPrice->purchaseRequest->update(['status' => 'processing']);
+        // Tangani notifikasi tes dari Midtrans (order_id mengandung "payment_notif_test")
+        if (strpos($request->order_id, 'payment_notif_test') !== false) {
+            Log::info('Test notification received from Midtrans', ['order_id' => $request->order_id]);
+            return response()->json(['status' => 'success'], 200);
+        }
 
-        // Cek apakah order sudah ada sebelumnya
-        $order = Order::where('offerprice_id', $offerPrice->id)->first();
-        $orderExistedBefore = $order !== null;
+        // Ambil server key dari environment variable
+        $serverKey = env('MIDTRANS_SERVER_KEY');
 
-        if ($order) {
-            // Jika order sudah ada (artinya DP sudah dibayar sebelumnya)
-            if ($payment->payment_type === 'dp') {
-                // Untuk pembayaran DP, status tetap waiting_for_customer_shipment
-                $order->update(['status' => 'waiting_for_customer_shipment']);
-            } elseif ($payment->payment_type === 'full') {
-                // Untuk pembayaran penuh, ubah status ke waiting_for_shipment jika order sudah ada (DP sudah dibayar)
-                $order->update(['status' => 'waiting_for_shipment']);
+        // Format gross_amount agar sesuai dengan yang dikirim Midtrans (contoh: "15000.00")
+        $grossAmount = number_format((float)$request->gross_amount, 2, '.', '');
+
+        // Hitung signature_key untuk validasi
+        $hashed = hash('sha512', $request->order_id . $request->status_code . $grossAmount . $serverKey);
+
+        // Validasi signature_key
+        if ($hashed !== $request->signature_key) {
+            Log::warning('Invalid signature key', [
+                'received_signature' => $request->signature_key,
+                'calculated_signature' => $hashed,
+                'order_id' => $request->order_id,
+                'status_code' => $request->status_code,
+                'gross_amount' => $grossAmount,
+            ]);
+            return response()->json(['error' => 'Invalid signature'], 403);
+        }
+
+        // Cari data pembayaran berdasarkan transaction_id (sama dengan order_id dari Midtrans)
+        $payment = Payment::where('transaction_id', $request->order_id)->first();
+        if (!$payment) {
+            Log::error('Payment not found for transaction_id', ['transaction_id' => $request->order_id]);
+            return response()->json(['error' => 'Payment not found'], 404);
+        }
+
+        // Ambil data offerPrice dari payment
+        $offerPrice = $payment->offerPrice;
+
+        // Update payment_method jika ada
+        if ($request->payment_type) {
+            $payment->update(['payment_method' => $request->payment_type]);
+        }
+
+        // Proses berdasarkan transaction_status dari Midtrans
+        if (in_array($request->transaction_status, ['capture', 'settlement'])) {
+            Log::info('Payment successful, updating status', [
+                'transaction_id' => $request->order_id,
+                'payment_type' => $payment->payment_type,
+            ]);
+
+            // Update status pembayaran berdasarkan tipe pembayaran (DP atau penuh)
+            $payment->update([
+                'payment_status' => $payment->payment_type === 'dp' ? 'paid' : 'success',
+                'payment_time' => now(),
+            ]);
+
+            // Update status offerPrice dan purchaseRequest
+            $offerPrice->update(['status' => 'accepted']);
+            $offerPrice->purchaseRequest->update(['status' => 'processing']);
+
+            // Cek apakah order sudah ada sebelumnya
+            $order = Order::where('offerprice_id', $offerPrice->id)->first();
+            $orderExistedBefore = $order !== null;
+
+            if ($order) {
+                // Jika order sudah ada (artinya DP sudah dibayar sebelumnya)
+                if ($payment->payment_type === 'dp') {
+                    // Untuk pembayaran DP, status tetap waiting_for_customer_shipment
+                    $order->update(['status' => 'waiting_for_customer_shipment']);
+                } elseif ($payment->payment_type === 'full') {
+                    // Untuk pembayaran penuh, ubah status ke waiting_for_shipment jika order sudah ada (DP sudah dibayar)
+                    $order->update(['status' => 'waiting_for_shipment']);
+                }
+            } else {
+                // Jika order belum ada (langsung bayar full tanpa DP atau ini adalah pembayaran DP pertama)
+                $order = Order::create([
+                    'order_id' => 'INV-' . now()->format('Ymd') . '-' . str_pad($offerPrice->id, 4, '0', STR_PAD_LEFT),
+                    'offerprice_id' => $offerPrice->id,
+                    'status' => 'waiting_for_customer_shipment',
+                ]);
             }
+
+            // Log status order untuk debugging
+            Log::info('Order status updated', [
+                'order_id' => $order->order_id,
+                'status' => $order->status,
+                'payment_type' => $payment->payment_type,
+                'order_existed_before' => $orderExistedBefore,
+            ]);
+
+            // Kirim notifikasi ke pengguna
+            if ($payment->payment_type === 'dp') {
+                $message = "DP Anda telah berhasil dibayar, silakan segera kirim barang agar segera diproses.";
+            } elseif ($payment->payment_type === 'full') {
+                $message = $orderExistedBefore
+                    ? "Pembayaran penuh Anda telah berhasil, barang akan segera dikirim."
+                    : "Pembayaran penuh Anda telah berhasil, silakan segera kirim barang agar segera diproses.";
+            }
+            $this->sendStatusNotification($offerPrice, $message);
+        } elseif (in_array($request->transaction_status, ['deny', 'cancel', 'expire'])) {
+            Log::info('Payment failed, updating status to failed', ['transaction_id' => $request->order_id]);
+            $payment->update(['payment_status' => 'failed']);
         } else {
-            // Jika order belum ada (langsung bayar full tanpa DP atau ini adalah pembayaran DP pertama)
-            $order = Order::create([
-                'order_id' => 'INV-' . now()->format('Ymd') . '-' . str_pad($offerPrice->id, 4, '0', STR_PAD_LEFT),
-                'offerprice_id' => $offerPrice->id,
-                'status' => 'waiting_for_customer_shipment',
+            Log::info('Unhandled transaction status', [
+                'transaction_id' => $request->order_id,
+                'transaction_status' => $request->transaction_status,
             ]);
         }
 
-        // Log status order untuk debugging
-        Log::info('Order status updated', [
-            'order_id' => $order->order_id,
-            'status' => $order->status,
-            'payment_type' => $payment->payment_type,
-            'order_existed_before' => $orderExistedBefore,
-        ]);
-
-        // Kirim notifikasi ke pengguna
-        if ($payment->payment_type === 'dp') {
-            $message = "DP Anda telah berhasil dibayar, silakan segera kirim barang agar segera diproses.";
-        } elseif ($payment->payment_type === 'full') {
-            $message = $orderExistedBefore
-                ? "Pembayaran penuh Anda telah berhasil, barang akan segera dikirim."
-                : "Pembayaran penuh Anda telah berhasil, silakan segera kirim barang agar segera diproses.";
-        }
-        $this->sendStatusNotification($offerPrice, $message);
-    } elseif (in_array($request->transaction_status, ['deny', 'cancel', 'expire'])) {
-        Log::info('Payment failed, updating status to failed', ['transaction_id' => $request->order_id]);
-        $payment->update(['payment_status' => 'failed']);
-    } else {
-        Log::info('Unhandled transaction status', [
-            'transaction_id' => $request->order_id,
-            'transaction_status' => $request->transaction_status,
-        ]);
+        // Kembalikan respons sukses ke Midtrans
+        return response()->json(['status' => 'success'], 200);
     }
-
-    // Kembalikan respons sukses ke Midtrans
-    return response()->json(['status' => 'success'], 200);
-}
 }

@@ -90,49 +90,52 @@ export default function Index({ auth }) {
         <AuthenticatedLayout
             auth={auth}
             header={
-                <div className="flex items-center gap-3 animate-pulse">
+                <div className="flex items-center gap-3">
                     <BarChart2 size={28} className="text-blue-500" />
-                    <h2 className="text-3xl font-bold text-blue-600">
+                    <h2 className="text-2xl font-bold text-blue-600">
                         Laporan Pesanan
                     </h2>
                 </div>
             }
+            preferredActiveMenu="/admin/reports"
         >
-            <div className="container mx-auto px-4 py-6 max-w-7xl">
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+            <div className="container mx-auto px-4 sm:px-6 py-6 max-w-7xl">
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                     <div className="text-center sm:text-left">
-                        <h1 className="text-3xl font-bold text-gray-800">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
                             Laporan Semua Pesanan
                         </h1>
-                        <p className="text-gray-600 mt-1">
+                        <p className="text-gray-600 mt-1 text-sm sm:text-base">
                             Lihat laporan pesanan berdasarkan rentang waktu.
                         </p>
                     </div>
                     <button
                         onClick={handleExportPDF}
-                        className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all duration-200"
+                        className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all duration-200 min-h-[44px] sm:w-auto w-full"
                     >
                         <Download size={18} />
                         Export to PDF
                     </button>
                 </div>
 
-                <div className="bg-white shadow-lg rounded-xl p-6 mb-6 border border-gray-100">
-                    <h3 className="text-lg font-semibold mb-4">
+                <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-6 border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">
                         Filter Laporan
                     </h3>
                     {error && (
-                        <div className="mb-4 text-red-600 text-sm">{error}</div>
+                        <div className="mb-4 bg-red-50 text-red-600 text-sm p-3 rounded-md">
+                            {error}
+                        </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Tipe Filter
                             </label>
                             <select
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="w-full p-2 border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                             >
                                 <option value="date">Tanggal</option>
                                 <option value="month">Bulan</option>
@@ -142,7 +145,7 @@ export default function Index({ auth }) {
                         {filterType === "date" && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Tanggal Awal
                                     </label>
                                     <input
@@ -151,11 +154,11 @@ export default function Index({ auth }) {
                                         onChange={(e) =>
                                             setStartDate(e.target.value)
                                         }
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="w-full p-2 border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Tanggal Akhir
                                     </label>
                                     <input
@@ -164,7 +167,7 @@ export default function Index({ auth }) {
                                         onChange={(e) =>
                                             setEndDate(e.target.value)
                                         }
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="w-full p-2 border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                                     />
                                 </div>
                             </>
@@ -172,7 +175,7 @@ export default function Index({ auth }) {
                         {filterType === "month" && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Bulan
                                     </label>
                                     <select
@@ -180,7 +183,7 @@ export default function Index({ auth }) {
                                         onChange={(e) =>
                                             setSelectedMonth(e.target.value)
                                         }
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="w-full p-2 border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                                     >
                                         <option value="">Pilih Bulan</option>
                                         {Array.from({ length: 12 }, (_, i) => (
@@ -194,7 +197,7 @@ export default function Index({ auth }) {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Tahun
                                     </label>
                                     <input
@@ -204,14 +207,14 @@ export default function Index({ auth }) {
                                             setSelectedYear(e.target.value)
                                         }
                                         placeholder="Tahun"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="w-full p-2 border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                                     />
                                 </div>
                             </>
                         )}
                         {filterType === "year" && (
                             <div>
-                                <label className="block text-sm font-medium-party text-gray-700">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Tahun
                                 </label>
                                 <input
@@ -221,14 +224,14 @@ export default function Index({ auth }) {
                                         setSelectedYear(e.target.value)
                                     }
                                     placeholder="Tahun"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    className="w-full p-2 border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                                 />
                             </div>
                         )}
                         <div className="flex items-end">
                             <button
                                 onClick={handleFilter}
-                                className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all duration-200"
+                                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-all duration-200 min-h-[44px] text-sm"
                             >
                                 Terapkan Filter
                             </button>
@@ -236,7 +239,7 @@ export default function Index({ auth }) {
                     </div>
                 </div>
 
-                <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+                <div className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-100">
                     <div className="hidden sm:block">
                         <OrderTable orders={orders} />
                     </div>

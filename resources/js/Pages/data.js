@@ -38,7 +38,7 @@ export const portfolios = [
     "/portofolio/portofolio1.jpeg",
     "/portofolio/portofolio2.jpeg",
     "/portofolio/portofolio3.jpeg",
-    "/portofolio/portofolio4.jpg",
+    "/portofolio/portofolio4.jpeg",
     "/portofolio/portofolio5.jpg",
     "/portofolio/portofolio6.jpg",
     "/portofolio/portofolio7.jpg",
@@ -65,6 +65,7 @@ export const portfolios = [
     "/portofolio/portofolio28.jpeg",
     "/portofolio/portofolio29.jpeg",
     "/portofolio/portofolio30.jpeg",
+    "/portofolio/portofolio31.jpg",
 ];
 
 // Data untuk Layanan Unggulan

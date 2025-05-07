@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\PurchaseRequest;
 use App\Models\OfferPrice;
+use Illuminate\Support\Facades\Http;
+
 
 class OfferPriceController extends Controller
 {

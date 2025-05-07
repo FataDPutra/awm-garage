@@ -89,30 +89,30 @@ public function index()
         $dummyReviews = [
             [
                 'id' => 'dummy_1',
-                'name' => 'John Doe',
+                'name' => 'Yoyok Supriyanto',
                 'comment' => 'Pelayanan sangat memuaskan, hasil vaporblasting seperti baru! Tim AWM Garage sangat profesional dan ramah.',
                 'image' => '/portofolio/portofolio1.jpeg',
                 'rating' => 5,
             ],
             [
                 'id' => 'dummy_2',
-                'name' => 'Jane Smith',
+                'name' => 'Budi Hariono',
                 'comment' => 'Chrome coating-nya sangat mengkilap dan tahan lama, terima kasih AWM Garage atas hasil yang luar biasa!',
                 'image' => '/portofolio/portofolio2.jpeg',
                 'rating' => 4,
             ],
             [
                 'id' => 'dummy_3',
-                'name' => 'Alice Johnson',
+                'name' => 'Pujo Setiawan',
                 'comment' => 'Sandblasting cepat, rapi, dan hasilnya memuaskan. Bengkel ini benar-benar recommended!',
                 'image' => '/portofolio/portofolio3.jpeg',
                 'rating' => 5,
             ],
             [
                 'id' => 'dummy_4',
-                'name' => 'Bob Brown',
+                'name' => 'Heru Darmawan',
                 'comment' => 'Bengkel yang sangat profesional dengan harga bersaing, pasti kembali lagi untuk layanan lainnya!',
-                'image' => '/portofolio/portofolio4.jpg',
+                'image' => '/portofolio/portofolio4.jpeg',
                 'rating' => 4,
             ],
         ];
