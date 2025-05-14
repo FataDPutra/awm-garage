@@ -59,38 +59,38 @@ class DataSeeder extends Seeder
     {
         Service::create([
             'service_name' => 'Vapor Blasting',
-            'description' => 'Layanan pembersihan permukaan logam dengan teknik vapor bombing untuk hasil halus.',
+            'description' => 'Pembersihan presisi dengan hasil halus dan detail tajam. Cocok untuk komponen mesin, karburator, dan part logam agar tampak seperti baru tanpa merusak permukaan.',
             'base_price' => 150000,
         ]);
 
         Service::create([
             'service_name' => 'Sand Blasting',
-            'description' => 'Pembersihan permukaan dengan pasir bertekanan tinggi untuk menghilangkan karat dan kotoran.',
-            'base_price' => 100000,
+            'description' => 'Menghilangkan karat, cat lama, dan kotoran membandel. Ideal untuk persiapan pengecatan dan restorasi permukaan logam agar lebih bersih dan siap finishing.',
+            'base_price' => 150000,
         ]);
 
         Service::create([
             'service_name' => 'Powder Coating',
-            'description' => 'Pelapisan permukaan dengan bubuk cat untuk hasil tahan lama dan estetis.',
+            'description' => 'Finishing warna solid, tahan gores, dan anti karat. Solusi pengecatan terbaik untuk tampilan profesional yang awet dan sesuai gaya Anda.',
             'base_price' => 200000,
         ]);
 
         Service::create([
             'service_name' => 'Parts & Custom',
-            'description' => 'Pembuatan dan kustomisasi suku cadang sesuai kebutuhan pelanggan.',
+            'description' => 'Pembuatan part custom sesuai desain dan kebutuhan Anda. Mulai dari bracket hingga aksesori, semua dikerjakan dengan presisi dan material berkualitas.',
             'base_price' => 250000,
         ]);
 
         Service::create([
             'service_name' => 'Restoration & Modification',
-            'description' => 'Restorasi dan modifikasi kendaraan untuk tampilan dan performa optimal.',
+            'description' => 'Menghidupkan kembali kendaraan lama dengan sentuhan modifikasi penuh karakter. Kombinasi tampilan klasik dan performa modern untuk hasil maksimal.',
             'base_price' => 500000,
         ]);
 
         Service::create([
             'service_name' => 'Zinc Plating',
-            'description' => 'Pelapisan seng untuk perlindungan korosi dan tampilan mengkilap.',
-            'base_price' => 175000,
+            'description' => 'Lapisan pelindung anti karat untuk part logam seperti baut dan bracket. Menjaga part tetap bersih, kuat, dan tahan lama dalam segala kondisi.',
+            'base_price' => 100000,
         ]);
     }
 
@@ -113,7 +113,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Super White',
-            'image_path' => 'service_additionals/super_white.webp',
+            'image_path' => 'service_additionals/super_white.webp   ',
             'additional_price' => 0,
         ]);
 
@@ -121,7 +121,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Gold Candy',
-            'image_path' => 'service_additionals/gold_candy.webp',
+            'image_path' => 'service_additionals/gold_candy.webp    ',
             'additional_price' => 0,
         ]);
 
@@ -129,7 +129,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Dark Grey Gloss',
-            'image_path' => 'service_additionals/dark_grey_gloss.webp',
+            'image_path' => 'service_additionals/dark_grey_gloss.webp   ',
             'additional_price' => 0,
         ]);
 
@@ -137,7 +137,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Merah Candy',
-            'image_path' => 'service_additionals/merah_candy.webp',
+            'image_path' => 'service_additionals/merah_candy.webp   ',
             'additional_price' => 0,
         ]);
 
@@ -145,7 +145,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Black Semi Gloss',
-            'image_path' => 'service_additionals/black_semi_gloss.webp',
+            'image_path' => 'service_additionals/black_semi_gloss.webp  ',
             'additional_price' => 0,
         ]);
 
@@ -161,7 +161,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Orange',
-            'image_path' => 'service_additionals/orange.webp',
+            'image_path' => 'service_additionals/orange.webp    ',
             'additional_price' => 0,
         ]);
 
@@ -169,7 +169,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Orange KTM',
-            'image_path' => 'service_additionals/orange_ktm.webp',
+            'image_path' => 'service_additionals/orange_ktm.webp    ',
             'additional_price' => 0,
         ]);
 
@@ -177,7 +177,7 @@ class DataSeeder extends Seeder
             'service_id' => 3, // Powder Coating
             'additional_type_id' => 1, // Color
             'name' => 'Biru Monster',
-            'image_path' => 'service_additionals/biru_monster.webp',
+            'image_path' => 'service_additionals/biru_monster.webp  ',
             'additional_price' => 0,
         ]);
     }
@@ -791,7 +791,7 @@ class DataSeeder extends Seeder
         Review::create([
             'order_id' => 'INV-20250506-0003',
             'rating' => 5,
-            'review' => 'Velg jadi seperti baru dengan warna Merah Ferari!',
+            'review' => 'Barang saya menjadi seperti baru !',
             'media_paths' => ['review_media/powdercoating.jpeg'],
         ]);
 

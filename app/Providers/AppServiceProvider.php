@@ -20,17 +20,17 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    // public function boot(): void
-    // {
-    //     Vite::prefetch(concurrency: 3);
-    // }
-    
-    public function boot()
+    public function boot(): void
     {
-        // Paksa HTTPS saat tidak di lokal
-        if (env('APP_ENV') !== 'local') {
-            \URL::forceScheme('https');
-        }
+        Vite::prefetch(concurrency: 3);
     }
+    
+    // public function boot()
+    // {
+    //     // Paksa HTTPS saat tidak di lokal
+    //     if (env('APP_ENV') !== 'local') {
+    //         \URL::forceScheme('https');
+    //     }
+    // }
     
 }
