@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useSwipeable } from "react-swipeable"; // Impor library swipe
 
 const ReviewSlide = () => {
     const [reviews, setReviews] = useState([]);
     const [currentReview, setCurrentReview] = useState(0);
-    const reviewsPerPageDesktop = 2; // Number of reviews to show on desktop
-    const reviewsPerPageMobile = 1; // Number of reviews to show on mobile
+    const reviewsPerPageDesktop = 2;
+    const reviewsPerPageMobile = 1;
 
-    // Determine how many reviews to show based on screen size
     const [reviewsPerPage, setReviewsPerPage] = useState(
         window.innerWidth >= 640 ? reviewsPerPageDesktop : reviewsPerPageMobile
     );
 
-    // Fetch reviews from API
     useEffect(() => {
         const fetchReviews = async () => {
             try {
@@ -40,24 +39,37 @@ const ReviewSlide = () => {
 
     const totalSlides = Math.ceil(reviews.length / reviewsPerPage);
 
-    // Auto-swipe logic
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentReview((prev) => (prev + 1) % totalSlides);
-        }, 5000); // 5 seconds for smooth auto-swipe
+        }, 5000);
         return () => clearInterval(interval);
     }, [totalSlides]);
 
-    // Handle manual navigation
     const goToSlide = (index) => {
         setCurrentReview(index);
     };
 
-    // Calculate star positions to center the filled stars
+    const goToPrevious = () => {
+        setCurrentReview((prev) => (prev - 1 + totalSlides) % totalSlides);
+    };
+
+    const goToNext = () => {
+        setCurrentReview((prev) => (prev + 1) % totalSlides);
+    };
+
+    // Tambahkan handler untuk swipe
+    const swipeHandlers = useSwipeable({
+        onSwipedLeft: () => goToNext(),
+        onSwipedRight: () => goToPrevious(),
+        trackMouse: true, // Mengizinkan drag dengan mouse
+        delta: 10, // Minimum jarak swipe untuk trigger
+    });
+
     const getStarIndexes = (rating) => {
         const totalStars = 5;
         const filledStars = Math.min(rating, totalStars);
-        const startIndex = Math.floor((totalStars - filledStars) / 2); // Start filled stars from this index
+        const startIndex = Math.floor((totalStars - filledStars) / 2);
         const filledIndexes = Array.from(
             { length: filledStars },
             (_, i) => startIndex + i
@@ -67,8 +79,31 @@ const ReviewSlide = () => {
 
     return (
         <div className="relative overflow-hidden">
-            {/* Slider Container */}
+            {/* Tombol Panah Kiri */}
+            <button
+                onClick={goToPrevious}
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-3 focus:outline-none"
+                aria-label="Previous Slide"
+            >
+                <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                    />
+                </svg>
+            </button>
+
+            {/* Slider Container dengan Swipe */}
             <div
+                {...swipeHandlers}
                 className="flex transition-transform duration-500 ease-in-out"
                 style={{
                     transform: `translateX(-${currentReview * 100}%)`,
@@ -102,7 +137,6 @@ const ReviewSlide = () => {
                                                 }
                                             />
                                         </div>
-
                                         <p className="mt-4 text-lg font-medium text-black dark:text-white text-center">
                                             {review.name}
                                         </p>
@@ -140,7 +174,29 @@ const ReviewSlide = () => {
                 ))}
             </div>
 
-            {/* Navigation Dots - Hidden on mobile, shown on desktop */}
+            {/* Tombol Panah Kanan */}
+            <button
+                onClick={goToNext}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-3 focus:outline-none"
+                aria-label="Next Slide"
+            >
+                <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                    />
+                </svg>
+            </button>
+
+            {/* Navigation Dots */}
             <div className="hidden sm:flex justify-center gap-3 mt-6 pb-4">
                 {Array.from({ length: totalSlides }).map((_, index) => (
                     <button

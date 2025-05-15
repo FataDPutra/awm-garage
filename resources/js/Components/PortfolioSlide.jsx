@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
+import { useSwipeable } from "react-swipeable"; // Impor library swipe
 
 const PortfolioSlide = ({ portfolios }) => {
     const [currentPortfolio, setCurrentPortfolio] = useState(0);
-    const imagesPerPageDesktop = 3; // Number of images to show on desktop
-    const imagesPerPageMobile = 1; // Number of images to show on mobile
+    const imagesPerPageDesktop = 3;
+    const imagesPerPageMobile = 1;
 
-    // Determine how many images to show based on screen size
     const [imagesPerPage, setImagesPerPage] = useState(
         window.innerWidth >= 640 ? imagesPerPageDesktop : imagesPerPageMobile
     );
@@ -24,23 +24,60 @@ const PortfolioSlide = ({ portfolios }) => {
 
     const totalSlides = Math.ceil(portfolios.length / imagesPerPage);
 
-    // Auto-swipe logic
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentPortfolio((prev) => (prev + 1) % totalSlides);
-        }, 4000); // 4 seconds for smooth auto-swipe
+        }, 4000);
         return () => clearInterval(interval);
     }, [totalSlides]);
 
-    // Handle manual navigation
     const goToSlide = (index) => {
         setCurrentPortfolio(index);
     };
 
+    const goToPrevious = () => {
+        setCurrentPortfolio((prev) => (prev - 1 + totalSlides) % totalSlides);
+    };
+
+    const goToNext = () => {
+        setCurrentPortfolio((prev) => (prev + 1) % totalSlides);
+    };
+
+    // Tambahkan handler untuk swipe
+    const swipeHandlers = useSwipeable({
+        onSwipedLeft: () => goToNext(),
+        onSwipedRight: () => goToPrevious(),
+        trackMouse: true, // Mengizinkan drag dengan mouse
+        delta: 10, // Minimum jarak swipe untuk trigger
+    });
+
     return (
         <div className="relative overflow-hidden">
-            {/* Slider Container */}
+            {/* Tombol Panah Kiri */}
+            <button
+                onClick={goToPrevious}
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-3 focus:outline-none"
+                aria-label="Previous Slide"
+            >
+                <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                    />
+                </svg>
+            </button>
+
+            {/* Slider Container dengan Swipe */}
             <div
+                {...swipeHandlers}
                 className="flex transition-transform duration-500 ease-in-out"
                 style={{
                     transform: `translateX(-${currentPortfolio * 100}%)`,
@@ -79,7 +116,29 @@ const PortfolioSlide = ({ portfolios }) => {
                 ))}
             </div>
 
-            {/* Navigation Dots - Hidden on mobile, shown on desktop */}
+            {/* Tombol Panah Kanan */}
+            <button
+                onClick={goToNext}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-3 focus:outline-none"
+                aria-label="Next Slide"
+            >
+                <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                    />
+                </svg>
+            </button>
+
+            {/* Navigation Dots */}
             <div className="hidden sm:flex justify-center gap-3 mt-6">
                 {Array.from({ length: totalSlides }).map((_, index) => (
                     <button
