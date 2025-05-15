@@ -24,14 +24,14 @@ class ShippingController extends Controller
 
         $userkey = env('ZENZIVA_USERKEY');
         $passkey = env('ZENZIVA_PASSKEY');
-        $message = "Halo {$user->full_name}, pesanan Anda (ID: {$order->order_id}) telah diperbarui: {$statusMessage} Silahkan pantau pesanan anda secara berkala melalui website http://awmgarage.com";
+        $message = "Halo {$user->full_name}, pesanan Anda (ID: {$order->order_id}) telah diperbarui: {$statusMessage} Silahkan pantau pesanan anda secara berkala melalui website https://awmgarage.store";
 
         if ($trackingNumber && $courierCode) {
             $courierName = $this->getCourierName($courierCode);
             $trackingUrl = $this->getTrackingUrl($courierCode, $trackingNumber);
-            $message .= " Dikirim melalui {$courierName} dengan nomor resi: {$trackingNumber}. Lacak di: {$trackingUrl} Silahkan pantau pesanan anda secara berkala melalui website http://awmgarage.com";
+            $message .= " Dikirim melalui {$courierName} dengan nomor resi: {$trackingNumber}. Lacak di: {$trackingUrl} Silahkan pantau pesanan anda secara berkala melalui website https://awmgarage.store";
         } elseif ($trackingNumber) {
-            $message .= " Nomor resi: {$trackingNumber}. Silahkan pantau pesanan anda secara berkala melalui website http://awmgarage.com";
+            $message .= " Nomor resi: {$trackingNumber}. Silahkan pantau pesanan anda secara berkala melalui website https://awmgarage.store";
         }
 
         $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
@@ -69,7 +69,7 @@ class ShippingController extends Controller
 
         $userkey = env('ZENZIVA_USERKEY');
         $passkey = env('ZENZIVA_PASSKEY');
-        $message = "Halo Admin, pesanan (ID: {$order->order_id}) dari {$order->offerPrice->purchaseRequest->user->full_name} telah diperbarui: {$statusMessage} Silahkan periksa di http://awmgarage.com";
+        $message = "Halo Admin, pesanan (ID: {$order->order_id}) dari {$order->offerPrice->purchaseRequest->user->full_name} telah diperbarui: {$statusMessage} Silahkan periksa di https://awmgarage.store";
         $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
 
         $response = Http::asForm()->post($url, [
