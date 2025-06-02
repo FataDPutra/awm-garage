@@ -28,10 +28,11 @@ const AddressSection = ({
                     type="radio"
                     name={`${type}_option`}
                     checked={data[`${type}_use_account_address`]}
-                    onChange={() =>
-                        setData(`${type}_use_account_address`, true)
-                    }
-                    className="h-5 w-5 text-blue-500"
+                    onChange={() => {
+                        setData(`${type}_use_account_address`, true);
+                        resetAddress(type);
+                    }}
+                    className="h-5 w-5 text-blue-500 focus:ring-blue-500"
                 />
                 Gunakan alamat akun saya
             </label>
@@ -44,7 +45,7 @@ const AddressSection = ({
                         setData(`${type}_use_account_address`, false);
                         resetAddress(type);
                     }}
-                    className="h-5 w-5 text-blue-500"
+                    className="h-5 w-5 text-blue-500 focus:ring-blue-500"
                 />
                 Masukkan alamat baru
             </label>
@@ -75,7 +76,7 @@ const AddressSection = ({
                     type="text"
                     className="w-full border p-3 rounded-lg bg-gray-100 text-gray-700"
                     placeholder="Alamat"
-                    value={data[type].address}
+                    value={data[type].address || ""}
                     disabled
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -83,28 +84,28 @@ const AddressSection = ({
                         type="text"
                         className="w-full border p-3 rounded-lg bg-gray-100 text-gray-700"
                         placeholder="Provinsi"
-                        value={data[type].province_name}
+                        value={data[type].province_name || ""}
                         disabled
                     />
                     <input
                         type="text"
                         className="w-full border p-3 rounded-lg bg-gray-100 text-gray-700"
                         placeholder="Kota"
-                        value={data[type].city_name}
+                        value={data[type].city_name || ""}
                         disabled
                     />
                     <input
                         type="text"
                         className="w-full border p-3 rounded-lg bg-gray-100 text-gray-700"
                         placeholder="Kecamatan"
-                        value={data[type].district_name}
+                        value={data[type].district_name || ""}
                         disabled
                     />
                     <input
                         type="text"
                         className="w-full border p-3 rounded-lg bg-gray-100 text-gray-700"
                         placeholder="Kelurahan"
-                        value={data[type].subdistrict_name}
+                        value={data[type].subdistrict_name || ""}
                         disabled
                     />
                 </div>
@@ -112,13 +113,13 @@ const AddressSection = ({
                     type="text"
                     className="w-full border p-3 rounded-lg bg-gray-100 text-gray-700"
                     placeholder="Kode Pos"
-                    value={data[type].zip_code}
+                    value={data[type].zip_code || ""}
                     disabled
                 />
                 <textarea
-                    className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700"
+                    className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
                     placeholder="Detail Alamat (contoh: nomor rumah, nama jalan)"
-                    value={data[type].address_details}
+                    value={data[type].address_details || ""}
                     onChange={(e) =>
                         handleAddressChange(
                             type,

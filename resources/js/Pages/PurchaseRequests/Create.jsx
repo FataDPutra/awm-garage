@@ -3,7 +3,7 @@ import { Head, useForm, usePage, Link } from "@inertiajs/react";
 import axios from "axios";
 import debounce from "lodash/debounce";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Plus, X, FileText, AlertTriangle } from "lucide-react";
+import { FileText, X, AlertTriangle } from "lucide-react";
 import ServiceSelection from "@/Components/ServiceSelection";
 import AdditionalOptions from "@/Components/AdditionalOptions";
 import DescriptionInput from "@/Components/DescriptionInput";
@@ -24,9 +24,25 @@ export default function Create() {
         shipping_cost_to_admin: 0,
         shipping_to_admin_selection: null,
         source_use_account_address: true,
-        source_address: {},
+        source_address: {
+            zip_code: auth.user?.zip_code || "",
+            province_name: auth.user?.province_name || "",
+            city_name: auth.user?.city_name || "",
+            district_name: auth.user?.district_name || "",
+            subdistrict_name: auth.user?.subdistrict_name || "",
+            address: auth.user?.address || "",
+            address_details: auth.user?.address_details || "",
+        },
         destination_use_account_address: true,
-        destination_address: {},
+        destination_address: {
+            zip_code: auth.user?.zip_code || "",
+            province_name: auth.user?.province_name || "",
+            city_name: auth.user?.city_name || "",
+            district_name: auth.user?.district_name || "",
+            subdistrict_name: auth.user?.subdistrict_name || "",
+            address: auth.user?.address || "",
+            address_details: auth.user?.address_details || "",
+        },
         shipping_to_customer_preference: null,
         additionals: [],
     });
@@ -64,16 +80,16 @@ export default function Create() {
     }, [auth.user]);
 
     const resetAddress = (type) => {
-        const emptyAddress = {
-            zip_code: "",
-            province_name: "",
-            city_name: "",
-            district_name: "",
-            subdistrict_name: "",
-            address: "",
-            address_details: "",
+        const accountAddress = {
+            zip_code: auth.user?.zip_code || "",
+            province_name: auth.user?.province_name || "",
+            city_name: auth.user?.city_name || "",
+            district_name: auth.user?.district_name || "",
+            subdistrict_name: auth.user?.subdistrict_name || "",
+            address: auth.user?.address || "",
+            address_details: auth.user?.address_details || "",
         };
-        setData(type, emptyAddress);
+        setData(type, accountAddress);
         if (type === "source_address") {
             setSourceSearch("");
             setSourceLocations([]);
@@ -130,6 +146,19 @@ export default function Create() {
     }, [destinationSearch]);
 
     const handleLocationSelect = (type, location) => {
+        console.log("Location selected:", { type, location });
+        if (!location.zip_code) {
+            alert(
+                "Lokasi yang dipilih tidak memiliki kode pos. Silakan pilih lokasi lain."
+            );
+            return;
+        }
+        if (type === "source_address") {
+            setData("source_use_account_address", false);
+        } else if (type === "destination_address") {
+            setData("destination_use_account_address", false);
+        }
+
         setData(type, {
             province_name: location.province_name || "",
             city_name: location.city_name || "",
@@ -139,6 +168,7 @@ export default function Create() {
             address: location.label || "",
             address_details: "",
         });
+
         if (type === "source_address") {
             setSourceSearch(location.label || "");
             setSourceLocations([]);
@@ -159,6 +189,7 @@ export default function Create() {
                     ? { zip_code: data.source_address.zip_code }
                     : null,
             };
+            console.log("Calculating shipping to admin with payload:", payload);
             const response = await axios.post("/calculate-shipping", payload);
             setShippingOptionsToAdmin(response.data.costs || []);
             if (response.data.costs && response.data.costs.length > 0) {
@@ -189,18 +220,28 @@ export default function Create() {
         const destinationZipCode = data.destination_use_account_address
             ? auth.user?.zip_code
             : data.destination_address.zip_code;
-        if (!destinationZipCode) return;
+        if (!destinationZipCode) {
+            console.log(
+                "No destination zip code available, skipping calculation."
+            );
+            return;
+        }
         setIsCalculatingShipping(true);
         try {
             const adminResponse = await axios.get("/api/admin-zip-code");
             const originZipCode = adminResponse.data.zip_code;
+            const payload = {
+                weight: weight * 1000,
+                destination: destinationZipCode,
+                origin: originZipCode,
+            };
+            console.log(
+                "Calculating shipping to customer with payload:",
+                payload
+            );
             const response = await axios.post(
                 "/calculate-shipping-to-customer",
-                {
-                    weight: weight * 1000,
-                    destination: destinationZipCode,
-                    origin: originZipCode,
-                }
+                payload
             );
             setShippingOptionsToCustomer(response.data.costs || []);
             if (response.data.costs && response.data.costs.length > 0) {
@@ -222,17 +263,33 @@ export default function Create() {
     };
 
     useEffect(() => {
+        console.log("useEffect triggered for shipping calculation", {
+            weight: data.weight,
+            source_use_account_address: data.source_use_account_address,
+            source_zip_code: data.source_address.zip_code,
+            destination_use_account_address:
+                data.destination_use_account_address,
+            destination_zip_code: data.destination_address.zip_code,
+            auth_user_zip_code: auth.user?.zip_code,
+        });
+
         if (
             data.weight &&
-            (data.source_use_account_address || data.source_address.zip_code)
+            data.source_use_account_address &&
+            auth.user?.zip_code
         ) {
             calculateShippingCostToAdmin(data.weight);
+        } else if (data.weight && data.source_address.zip_code) {
+            calculateShippingCostToAdmin(data.weight);
         }
+
         if (
             data.weight &&
-            (data.destination_use_account_address ||
-                data.destination_address.zip_code)
+            data.destination_use_account_address &&
+            auth.user?.zip_code
         ) {
+            calculateShippingCostToCustomer(data.weight);
+        } else if (data.weight && data.destination_address.zip_code) {
             calculateShippingCostToCustomer(data.weight);
         }
     }, [
@@ -241,6 +298,7 @@ export default function Create() {
         data.source_address.zip_code,
         data.destination_use_account_address,
         data.destination_address.zip_code,
+        auth.user?.zip_code,
     ]);
 
     const handleFileChange = (e) => {
@@ -406,7 +464,7 @@ export default function Create() {
             {/* Profile Incomplete Alert */}
             {showProfileAlert && isProfileIncomplete && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-pulse">
                         <div className="p-6 relative">
                             <button
                                 onClick={() => setShowProfileAlert(false)}
@@ -444,7 +502,7 @@ export default function Create() {
             {/* Jawa Tengah Location Alert */}
             {!showProfileAlert && showLocationAlert && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-pulse">
                         <div className="p-6 relative">
                             <button
                                 onClick={() => setShowLocationAlert(false)}
@@ -490,7 +548,7 @@ export default function Create() {
             <div className="container mx-auto px-4 py-6">
                 <form
                     onSubmit={handleSubmit}
-                    className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100 p-6 space-y-6"
+                    className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200 p-6 space-y-6"
                     encType="multipart/form-data"
                 >
                     <ServiceSelection

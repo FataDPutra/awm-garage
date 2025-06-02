@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Truck, ZoomIn, X } from "lucide-react";
+import { Inertia } from "@inertiajs/inertia";
 
 export default function ShippingInfoSection({
     order,
@@ -9,20 +10,22 @@ export default function ShippingInfoSection({
 }) {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
 
-    // Gunakan useEffect untuk menangani flash message
+    // Handle flash messages
     useEffect(() => {
         if (flash?.success) {
-            alert(flash.success); // Tampilkan alert biasa untuk sukses
+            alert(flash.success);
         }
         if (flash?.error) {
-            alert(flash.error); // Tampilkan alert biasa untuk error
+            alert(flash.error);
         }
     }, [flash]);
 
+    // Early return if order or required properties are missing
     if (
-        !order.shipping &&
-        !order.shipping_receipt_customer &&
-        !order.shipping_proof_customer
+        !order ||
+        (!order.shipping &&
+            !order.shipping_receipt_customer &&
+            !order.shipping_proof_customer)
     ) {
         return null;
     }
@@ -31,8 +34,16 @@ export default function ShippingInfoSection({
         e.preventDefault();
         post(`/orders/${order.order_id}/confirm-received-customer`, {
             preserveScroll: true,
-            // Tidak perlu menangani onSuccess atau onError di sini,
-            // karena flash message akan ditangani oleh useEffect
+            onSuccess: () => {
+                // Force a reload to ensure the order prop is updated
+                Inertia.reload({ preserveState: true });
+            },
+            onError: (errors) => {
+                const errorMessage =
+                    Object.values(errors).join(", ") ||
+                    "Terjadi kesalahan saat mengonfirmasi penerimaan barang.";
+                alert(errorMessage);
+            },
         });
     };
 
@@ -109,11 +120,13 @@ export default function ShippingInfoSection({
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm text-gray-600">
                         <div className="space-y-2">
-                            <p>
-                                <strong>Kurir:</strong>{" "}
-                                {order.shipping.courier_name} (
-                                {order.shipping.courier_service})
-                            </p>
+                            {order.shipping.courier_name && (
+                                <p>
+                                    <strong>Kurir:</strong>{" "}
+                                    {order.shipping.courier_name} (
+                                    {order.shipping.courier_service})
+                                </p>
+                            )}
                             <p>
                                 <strong>Nomor Resi:</strong>{" "}
                                 {order.shipping.tracking_number ||
@@ -143,8 +156,11 @@ export default function ShippingInfoSection({
                         <button
                             onClick={handleConfirmReceived}
                             className="mt-4 w-full bg-gradient-to-r from-green-500 to-green-700 text-white py-3 rounded-lg hover:from-green-600 hover:to-green-800 transition-all duration-200 shadow-md"
+                            disabled={post.processing}
                         >
-                            Konfirmasi Barang Diterima
+                            {post.processing
+                                ? "Memproses..."
+                                : "Konfirmasi Barang Diterima"}
                         </button>
                     )}
                 </div>

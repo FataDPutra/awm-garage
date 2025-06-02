@@ -1,4 +1,3 @@
-// resources/js/Components/Customer/Orders/ReviewsSection.jsx
 import React, { useState } from "react";
 import { Star, Upload, ZoomIn, X } from "lucide-react";
 import { Inertia } from "@inertiajs/inertia";
@@ -17,8 +16,21 @@ export default function ReviewsSection({
     setHoverRating,
 }) {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
+    const [selectedMediaType, setSelectedMediaType] = useState("image"); // Untuk membedakan image/video di modal
 
     if (order.status !== "completed") return null;
+
+    const allowedFileTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "image/gif",
+        "video/mp4",
+        "video/quicktime",
+        "video/x-msvideo",
+    ];
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const maxFiles = 5; // Maksimum 5 file
 
     const handleReviewSubmit = (e) => {
         e.preventDefault();
@@ -47,22 +59,50 @@ export default function ReviewsSection({
                 Inertia.reload();
             },
             onError: (errors) => {
-                const errorMsg =
-                    Object.values(errors).join(", ") || "Unknown error";
-                alert("Gagal menyimpan review: " + errorMsg);
+                const errorMessages = Object.entries(errors)
+                    .map(([key, value]) => {
+                        if (key.startsWith("review_media")) {
+                            return `Media ${
+                                parseInt(key.split(".")[1]) + 1
+                            }: ${value}`;
+                        }
+                        return `${key}: ${value}`;
+                    })
+                    .join(", ");
+                alert(
+                    `Gagal menyimpan review: ${
+                        errorMessages || "Unknown error"
+                    }`
+                );
             },
         });
     };
 
     const handleReviewMediaChange = (e) => {
-        const newFiles = Array.from(e.target.files).filter(
-            (file) => file && file.size > 0
-        );
+        const newFiles = Array.from(e.target.files).filter((file) => {
+            if (!allowedFileTypes.includes(file.type)) {
+                alert(
+                    `File ${file.name} tidak didukung. Gunakan jpg, png, gif, mp4, mov, atau avi.`
+                );
+                return false;
+            }
+            if (file.size > maxFileSize) {
+                alert(`File ${file.name} terlalu besar. Maksimum 10MB.`);
+                return false;
+            }
+            return true;
+        });
+
+        if (newFiles.length + data.review_media.length > maxFiles) {
+            alert(`Maksimum ${maxFiles} file diizinkan.`);
+            return;
+        }
+
         if (newFiles.length) {
             const updatedFiles = [...data.review_media, ...newFiles];
             setData("review_media", updatedFiles);
             const updatedPreviews = updatedFiles.map((file) =>
-                URL.createObjectURL(file)
+                file instanceof File ? URL.createObjectURL(file) : file
             );
             setReviewMediaPreviews(updatedPreviews);
         }
@@ -77,14 +117,16 @@ export default function ReviewsSection({
         setReviewMediaPreviews(updatedPreviews);
     };
 
-    const openPhoto = (photo, e) => {
+    const openPhoto = (path, type, e) => {
         e.stopPropagation();
-        setSelectedPhoto(photo); // Untuk preview dan media yang sudah ada, gunakan path langsung
+        setSelectedPhoto(path);
+        setSelectedMediaType(type); // "image" atau "video"
     };
 
     const closePhoto = (e) => {
         e.stopPropagation();
         setSelectedPhoto(null);
+        setSelectedMediaType("image");
     };
 
     const renderStars = (rating) => {
@@ -143,7 +185,7 @@ export default function ReviewsSection({
                                     <strong>Ulasan:</strong> {review.review}
                                 </p>
                             )}
-                            {review.media_paths &&
+                            {Array.isArray(review.media_paths) &&
                                 review.media_paths.length > 0 && (
                                     <div className="mt-4">
                                         <p className="text-sm font-medium text-gray-700 mb-2">
@@ -163,6 +205,9 @@ export default function ReviewsSection({
                                                             onClick={(e) =>
                                                                 openPhoto(
                                                                     `/storage/${path}`,
+                                                                    isVideo
+                                                                        ? "video"
+                                                                        : "image",
                                                                     e
                                                                 )
                                                             }
@@ -243,12 +288,13 @@ export default function ReviewsSection({
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Unggah Media (Opsional):
+                            Unggah Media (Opsional, maks {maxFiles} file, 10MB
+                            per file):
                         </label>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
                             <input
                                 type="file"
-                                accept="image/*,video/mp4,video/quicktime,video/avi"
+                                accept="image/jpeg,image/png,image/jpg,image/gif,video/mp4,video/quicktime,video/x-msvideo"
                                 multiple
                                 onChange={handleReviewMediaChange}
                                 className="hidden"
@@ -267,6 +313,8 @@ export default function ReviewsSection({
                                     <span className="text-blue-600 underline">
                                         klik untuk memilih
                                     </span>
+                                    <br />
+                                    (jpg, png, gif, mp4, mov, avi)
                                 </p>
                             </label>
                         </div>
@@ -278,17 +326,25 @@ export default function ReviewsSection({
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {reviewMediaPreviews.map(
                                         (preview, index) => {
+                                            const file =
+                                                data.review_media[index];
                                             const isVideo =
+                                                file &&
                                                 /\.(mp4|mov|avi)$/i.test(
-                                                    data.review_media[index]
-                                                        .name
+                                                    file.name
                                                 );
                                             return (
                                                 <div
                                                     key={index}
                                                     className="relative group cursor-pointer"
                                                     onClick={(e) =>
-                                                        openPhoto(preview, e)
+                                                        openPhoto(
+                                                            preview,
+                                                            isVideo
+                                                                ? "video"
+                                                                : "image",
+                                                            e
+                                                        )
                                                     }
                                                 >
                                                     {isVideo ? (
@@ -326,6 +382,11 @@ export default function ReviewsSection({
                                                     >
                                                         ×
                                                     </button>
+                                                    <p className="text-xs text-gray-600 mt-1 truncate">
+                                                        {file?.name ||
+                                                            "Media " +
+                                                                (index + 1)}
+                                                    </p>
                                                 </div>
                                             );
                                         }
@@ -362,11 +423,19 @@ export default function ReviewsSection({
                         className="relative max-w-4xl w-full max-h-[90vh] mx-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <img
-                            src={selectedPhoto}
-                            alt="Foto Ukuran Penuh"
-                            className="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-lg"
-                        />
+                        {selectedMediaType === "video" ? (
+                            <video
+                                src={selectedPhoto}
+                                controls
+                                className="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-lg"
+                            />
+                        ) : (
+                            <img
+                                src={selectedPhoto}
+                                alt="Foto Ukuran Penuh"
+                                className="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-lg"
+                            />
+                        )}
                         <button
                             onClick={closePhoto}
                             className="absolute top-4 right-4 bg-gray-800 text-white p-2 rounded-full hover:bg-gray-900 transition-all duration-200 z-10 shadow-md"

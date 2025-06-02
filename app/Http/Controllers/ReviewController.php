@@ -2,90 +2,95 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Shipping;
 use App\Models\Review;
 use App\Models\Order;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Log;
 
 class ReviewController extends Controller
 {
     public function storeReview(Request $request, $order_id)
     {
-    try {
-        $order = Order::with(['offerPrice.purchaseRequest', 'reviews'])
-            ->where('order_id', $order_id)
-            ->firstOrFail();
+        try {
+            $order = Order::with(['offerPrice.purchaseRequest'])
+                ->where('order_id', $order_id)
+                ->firstOrFail();
 
-        if (!$order->offerPrice || !$order->offerPrice->purchaseRequest || $order->offerPrice->purchaseRequest->user_id !== auth()->id()) {
-            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke pesanan ini.');
-        }
-
-        if ($order->status !== 'completed') {
-            return redirect()->back()->with('error', 'Pesanan belum selesai untuk diberi ulasan.');
-        }
-
-        \Log::info('Request data:', $request->all());
-        \Log::info('Files in request:', $request->file('review_media') ? array_keys($request->file('review_media')) : 'No files');
-        \Log::info('Raw request files:', $_FILES); // Log raw PHP files array
-
-        $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'review' => 'nullable|string|max:1000',
-            'review_media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mov,avi,quicktime|max:10240',
-        ]);
-
-        $mediaPaths = [];
-        if ($request->hasFile('review_media')) {
-            $files = $request->file('review_media');
-            foreach ($files as $index => $media) {
-                \Log::info("Processing file at index $index:", [
-                    'name' => $media->getClientOriginalName(),
-                    'mime' => $media->getMimeType(),
-                    'size' => $media->getSize(),
-                    'path' => $media->getPathname(),
-                    'valid' => $media->isValid(),
-                    'error' => $media->getError(),
-                    'error_message' => $media->getErrorMessage(),
-                ]);
-
-                if ($media->isValid()) {
-                    $path = $media->store('review_media', 'public');
-                    \Log::info("Stored file at index $index: " . $path);
-                    $mediaPaths[] = $path;
-                } else {
-                    \Log::warning("File at index $index failed: " . $media->getClientOriginalName());
-                }
+            // Validasi akses pengguna
+            if (!$order->offerPrice || !$order->offerPrice->purchaseRequest || $order->offerPrice->purchaseRequest->user_id !== auth()->id()) {
+                return redirect()->back()->with('error', 'Anda tidak memiliki akses ke pesanan ini.');
             }
-        } else {
-            \Log::info('No valid files uploaded');
+
+            // Validasi status pesanan
+            if ($order->status !== 'completed') {
+                return redirect()->back()->with('error', 'Pesanan belum selesai untuk diberi ulasan.');
+            }
+
+            // Validasi input
+            $request->validate([
+                'rating' => 'required|integer|min:1|max:5',
+                'review' => 'nullable|string|max:1000',
+                'review_media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mov,avi,quicktime|max:10240',
+            ]);
+
+            // Log request untuk debugging
+            Log::info('Request data:', $request->all());
+            Log::info('Files in request:', [
+                'files' => $request->hasFile('review_media') ? array_keys($request->file('review_media')) : ['No files']
+            ]);
+
+            // Proses file media
+            $mediaPaths = [];
+            if ($request->hasFile('review_media')) {
+                foreach ($request->file('review_media') as $index => $media) {
+                    if ($media->isValid()) {
+                        $path = $media->store('review_media', 'public');
+                        $mediaPaths[] = $path;
+                        Log::info("Stored file at index $index:", [
+                            'path' => $path,
+                            'name' => $media->getClientOriginalName(),
+                            'mime' => $media->getMimeType(),
+                            'size' => $media->getSize(),
+                        ]);
+                    } else {
+                        Log::warning("Invalid file at index $index:", [
+                            'name' => $media->getClientOriginalName(),
+                            'error' => $media->getErrorMessage(),
+                        ]);
+                    }
+                }
+            } else {
+                Log::info('No files uploaded for review.', []);
+            }
+
+            // Simpan review
+            $review = new Review([
+                'order_id' => $order->order_id,
+                'rating' => $request->rating,
+                'review' => $request->review ?: null,
+                'media_paths' => $mediaPaths,
+            ]);
+            $review->save();
+
+            Log::info('Review saved successfully for order:', ['order_id' => $order_id]);
+
+            return redirect()->back()->with('success', 'Rating dan review berhasil disimpan.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed:', $e->errors());
+            return redirect()->back()->withErrors($e->errors())->with('error', 'Validasi gagal.');
+        } catch (\Exception $e) {
+            Log::error('Error saving review:', [
+                'message' => $e->getMessage(),
+                'exception' => $e
+            ]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan review.');
         }
-
-        $review = new Review([
-            'order_id' => $order->order_id,
-            'rating' => $request->rating,
-            'review' => $request->review,
-            'media_paths' => $mediaPaths,
-        ]);
-        $review->save();
-
-        \Log::info('Review saved successfully for order: ' . $order_id);
-
-        return redirect()->back()->with('success', 'Rating dan review berhasil disimpan.');
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        \Log::error('Validation failed: ' . $e->getMessage(), $e->errors());
-        return redirect()->back()->withErrors($e->errors())->with('error', 'Validasi gagal.');
-    } catch (\Exception $e) {
-        \Log::error('Error saving review: ' . $e->getMessage(), ['exception' => $e]);
-        return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan review: ' . $e->getMessage());
     }
-}
 
-public function index()    
+    public function index()
     {
-        // Data dummy dari data.js (hard-coded untuk simulasi)
+        // Data dummy
         $dummyReviews = [
             [
                 'id' => 'dummy_1',
@@ -121,7 +126,6 @@ public function index()
         $dbReviews = Review::with(['order.offerPrice.purchaseRequest.user'])
             ->get()
             ->map(function ($review) {
-                // Ambil hanya satu gambar dari completed_photo_path
                 $imagePath = is_array($review->order->completed_photo_path) && !empty($review->order->completed_photo_path)
                     ? $review->order->completed_photo_path[0]
                     : null;
@@ -133,10 +137,11 @@ public function index()
                     'comment' => $review->review,
                     'rating' => $review->rating,
                     'image' => $imageUrl,
+                    'media_paths' => $review->media_paths ?? [],
                 ];
             })->toArray();
 
-        // Gabungkan data: dummy reviews dulu, lalu database reviews
+        // Gabungkan data
         $reviews = array_merge($dummyReviews, $dbReviews);
 
         return response()->json($reviews);

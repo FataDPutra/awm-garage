@@ -1,0 +1,178 @@
+@startuml
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 30
+top to bottom direction
+
+' ========== CLASSES ==========
+class User {
+  +id: bigint
+  +username: string
+  -password: string
+  +role: string
+  +email: string
+  +full_name: string
+  +phone: string
+  +address: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +login(username: string, password: string): boolean
+  +register(userData: map): boolean
+  +updateProfile(profileData: map): void
+  +sendOtp(phone: string): void
+  +verifyOtp(code: string): boolean
+}
+
+class Service {
+  +id: bigint
+  +service_name: string
+  +description: text
+  +base_price: decimal
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +listServices(): Service[]
+  +createService(name: string, price: decimal): void
+  +updateService(id: bigint, data: map): void
+  +deleteService(id: bigint): void
+}
+
+class AdditionalType {
+  +id: bigint
+  +name: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +createType(name: string): void
+}
+
+class ServiceAdditional {
+  +id: bigint
+  +service_id: bigint
+  +additional_type_id: bigint
+  +name: string
+  +additional_price: decimal
+  +created_at: timestamp
+  +updated_at: timestamp
+}
+
+class PurchaseRequest {
+  +id: bigint
+  +user_id: bigint
+  +service_id: bigint
+  +description: text
+  +weight: decimal
+  +status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +listRequests(): PurchaseRequest[]
+  +createRequest(data: map): void
+  +getRequest(id: bigint): PurchaseRequest
+  +acceptOffer(id: bigint): void
+  +rejectOffer(id: bigint): void
+}
+
+class OfferPrice {
+  +id: bigint
+  +pr_id: bigint
+  +service_price: decimal
+  +total_price: decimal
+  +status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +createOfferPrice(pr_id: bigint, price: decimal): void
+  +updateOfferPrice(id: bigint, price: decimal): void
+}
+
+class Order {
+  +order_id: string
+  +offerprice_id: bigint
+  +status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +listOrders(): Order[]
+  +getOrder(order_id: string): Order
+  +confirmReceived(order_id: string): void
+  +confirmCustomerOrder(order_id: string, confirmation: string): void
+}
+
+class OrderComplain {
+  +id: bigint
+  +order_id: string
+  +customer_feedback: text
+  +created_at: timestamp
+  +updated_at: timestamp
+}
+
+class Payment {
+  +id: bigint
+  +offerprice_id: bigint
+  +amount: decimal
+  +payment_method: string
+  +payment_status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +createDownPayment(amount: decimal, offerprice_id: bigint): void
+  +createFullPayment(amount: decimal, offerprice_id: bigint): void
+}
+
+class Shipping {
+  +shipping_id: bigint
+  +order_id: string
+  +courier_name: string
+  +tracking_number: string
+  +status: string
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +createShipping(order_id: string, courier: string): void
+  +markAsDelivered(shipping_id: bigint): void
+}
+
+class Review {
+  +id: bigint
+  +order_id: string
+  +rating: integer
+  +review: text
+  +created_at: timestamp
+  +updated_at: timestamp
+  --
+  +createReview(order_id: string, rating: integer, review: text): void
+}
+
+class Otp {
+  +id: bigint
+  +user_id: bigint
+  +phone: string
+  +code: string
+  +expires_at: timestamp
+  +created_at: timestamp
+  +updated_at: timestamp
+}
+
+' ========== RELATIONSHIPS ==========
+User "1" -- "*" PurchaseRequest : creates
+User "1" -- "*" Order : places
+User "1" -- "1" Otp : has
+
+Service "1" -- "*" PurchaseRequest : requested for
+Service "1" -- "*" ServiceAdditional : has
+
+AdditionalType "1" -- "*" ServiceAdditional : categorizes
+
+PurchaseRequest "1" -- "1" OfferPrice : has
+PurchaseRequest "1" -- "0..1" Order : generates
+
+OfferPrice "1" -- "1" Order : triggers
+OfferPrice "1" -- "*" Payment : associated with
+
+Order "1" -- "*" OrderComplain : receives
+Order "1" -- "1" Shipping : requires
+Order "1" -- "*" Review : receives
+
+@enduml
