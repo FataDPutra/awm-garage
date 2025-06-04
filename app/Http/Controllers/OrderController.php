@@ -295,7 +295,7 @@ public function confirmShipmentCustomer(Request $request, $order_id)
 {
     $request->validate([
         'shipping_receipt_customer' => 'required|string',
-        'shipping_proof_customer' => 'required|image|max:2048',
+        'shipping_proof_customer' => 'required|image|max:10240',
     ]);
 
     $order = Order::where('order_id', $order_id)

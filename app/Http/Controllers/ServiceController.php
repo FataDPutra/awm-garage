@@ -115,7 +115,7 @@ class ServiceController extends Controller
             'additionals.*.additional_type_id' => 'nullable|exists:additional_types,id',
             'additionals.*.new_type' => 'nullable|string|max:255',
             'additionals.*.name' => 'required_with:additionals|string',
-            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'additionals.*.additional_price' => 'nullable|numeric|min:0',
         ]);
 
@@ -187,7 +187,7 @@ class ServiceController extends Controller
             'additionals.*.id' => 'nullable|exists:service_additionals,id',
             'additionals.*.additional_type_id' => 'nullable|exists:additional_types,id',
             'additionals.*.name' => 'required|string|max:255',
-            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'additionals.*.image_path' => 'nullable|string',
             'additionals.*.additional_price' => 'nullable|numeric|min:0',
         ]);
