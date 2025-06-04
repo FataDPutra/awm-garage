@@ -135,7 +135,7 @@ public function index()
         $request->validate([
             'service_id' => 'required|exists:services,id',
             'description' => 'required|string',
-            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,heic|max:10240',
             'weight' => 'required|numeric|min:0.1|max:999.99',
             'source_use_account_address' => 'required|boolean',
             'destination_use_account_address' => 'required|boolean',
@@ -455,7 +455,7 @@ public function index()
     $request->validate([
         'service_id' => 'required|exists:services,id',
         'description' => 'required|string',
-        'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+        'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,heic|max:10240',
         'weight' => 'required|numeric|min:0.1|max:999.99',
         'source_use_account_address' => 'required|boolean',
         'destination_use_account_address' => 'required|boolean',

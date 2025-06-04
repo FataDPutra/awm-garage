@@ -309,6 +309,7 @@ export default function Create() {
                 "image/png",
                 "image/jpg",
                 "image/gif",
+                "image/heic",
             ].includes(file.type);
             return isValidType;
         });
