@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use App\Models\OrderComplain;
 use Illuminate\Support\Facades\Http;
-
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -21,7 +21,7 @@ class OrderController extends Controller
 
         // Hanya kirim notifikasi jika nomor telepon sudah diverifikasi
         if (!$user->phone_verified_at) {
-            \Log::info('Notifikasi tidak dikirim karena nomor belum diverifikasi', ['user_id' => $user->id]);
+            Log::info('Notifikasi tidak dikirim karena nomor belum diverifikasi', ['user_id' => $user->id]);
             return;
         }
 
@@ -40,28 +40,24 @@ class OrderController extends Controller
         $result = $response->json();
 
         if ($result && $result['status'] != '1') {
-            \Log::warning('Gagal mengirim notifikasi status', [
+            Log::warning('Gagal mengirim notifikasi status', [
                 'user_id' => $user->id,
                 'phone' => $user->phone,
                 'response' => $result,
             ]);
         } else {
-            \Log::info('Notifikasi status berhasil dikirim', [
+            Log::info('Notifikasi status berhasil dikirim', [
                 'user_id' => $user->id,
                 'phone' => $user->phone,
             ]);
         }
     }
 
-
-    /**
-     * Mengirim notifikasi WhatsApp ke Admin berdasarkan status Order
-     */
     private function sendAdminStatusNotification($order, $statusMessage)
     {
         $admin = User::where('role', 'admin')->first();
         if (!$admin || !$admin->phone_verified_at) {
-            \Log::info('Notifikasi ke Admin tidak dikirim karena nomor belum diverifikasi atau Admin tidak ditemukan', ['admin_id' => $admin?->id]);
+            Log::info('Notifikasi ke Admin tidak dikirim karena nomor belum diverifikasi atau Admin tidak ditemukan', ['admin_id' => $admin?->id]);
             return;
         }
 
@@ -80,20 +76,19 @@ class OrderController extends Controller
         $result = $response->json();
 
         if ($result && $result['status'] != '1') {
-            \Log::warning('Gagal mengirim notifikasi ke Admin', [
+            Log::warning('Gagal mengirim notifikasi ke Admin', [
                 'admin_id' => $admin->id,
                 'phone' => $admin->phone,
                 'response' => $result,
             ]);
         } else {
-            \Log::info('Notifikasi ke Admin berhasil dikirim', [
+            Log::info('Notifikasi ke Admin berhasil dikirim', [
                 'admin_id' => $admin->id,
                 'phone' => $admin->phone,
             ]);
         }
     }
 
-    // Menampilkan daftar pesanan berdasarkan status
     public function index()
     {
         $orders = Order::with('offerPrice.purchaseRequest.service', 'offerPrice.purchaseRequest.user')
@@ -105,38 +100,24 @@ class OrderController extends Controller
         ]);
     }
 
-//     public function index()
-// {
-//     $orders = Order::with('offerPrice.purchaseRequest.service', 'offerPrice.purchaseRequest.user')
-//         ->orderBy('created_at', 'desc')
-//         ->get()
-//         ->groupBy('status'); // Kelompokkan berdasarkan status
+    public function show($order_id)
+    {
+        $order = Order::with([
+            'offerPrice.purchaseRequest.service.additionals.additionalType',
+            'offerPrice.purchaseRequest.user',
+            'offerPrice.payments',
+            'complains',
+            'shipping',
+            'reviews'
+        ])
+        ->where('order_id', $order_id)
+        ->firstOrFail();
 
-//     return Inertia::render('Orders/Index', [
-//         'orders' => $orders
-//     ]);
-// }
+        return Inertia::render('Orders/Show', [
+            'order' => $order
+        ]);
+    }
 
-    // Menampilkan detail order
-public function show($order_id)
-{
-    $order = Order::with([
-        'offerPrice.purchaseRequest.service.additionals.additionalType',
-        'offerPrice.purchaseRequest.user',
-        'offerPrice.payments',
-        'complains',
-        'shipping',
-        'reviews'
-    ])
-    ->where('order_id', $order_id)
-    ->firstOrFail();
-
-    return Inertia::render('Orders/Show', [
-        'order' => $order
-    ]);
-}
-
-    // Mengubah status menjadi "Barang Diterima & Diproses" oleh admin
     public function confirmReceived($order_id)
     {
         $order = Order::where('order_id', $order_id)->firstOrFail();
@@ -149,105 +130,131 @@ public function show($order_id)
         return redirect()->route('orders.index')->with('success', 'Barang diterima dan sedang diproses.');
     }
 
-    // Mengunggah hasil pengerjaan
-public function uploadCompletedPhoto(Request $request, $order_id)
-{
-    $request->validate([
-        'completed_photo.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
-    ]);
+    public function uploadCompletedPhoto(Request $request, $order_id)
+    {
+        // Log input untuk debugging
+        Log::info('Upload Completed Photo Input:', $request->all());
 
-    $order = Order::where('order_id', $order_id)->firstOrFail();
-
-    // Ambil foto yang sudah ada, jika null atau kosong ubah jadi array
-    $existingPhotos = json_decode($order->completed_photo_path, true) ?? [];
-
-    if ($request->hasFile('completed_photo')) {
-        foreach ($request->file('completed_photo') as $file) {
-            $path = $file->store('completed_photos', 'public');
-            $existingPhotos[] = $path;
+        // Log detail file yang diunggah
+        if ($request->hasFile('completed_photo')) {
+            $files = $request->file('completed_photo');
+            $fileDetails = collect($files)->map(function ($file) {
+                return [
+                    'name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime' => $file->getMimeType(),
+                ];
+            })->all();
+            Log::info('Uploaded completed photo details:', $fileDetails);
+        } else {
+            Log::info('No completed photos uploaded');
         }
 
-        // Update ke database dengan format JSON
-        $order->update([
-            'completed_photo_path' => $existingPhotos, // Bisa langsung array karena kolom JSON
-            'status' => 'waiting_for_cust_confirmation',
-            'customer_confirmation' => 'pending',
+        $request->validate([
+            'completed_photo.*' => 'required|image|mimes:jpeg,png,jpg,gif,heic|max:10240',
+        ], [
+            'completed_photo.*.required' => 'Foto hasil pengerjaan wajib diunggah.',
+            'completed_photo.*.image' => 'File harus berupa gambar.',
+            'completed_photo.*.mimes' => 'File harus berformat JPEG, PNG, JPG, GIF, atau HEIC.',
+            'completed_photo.*.max' => 'Setiap foto maksimal 10MB.',
         ]);
 
-        // $order->complains()->create([
-        //     'customer_feedback' => null,
-        //     'revised_photo_path' => [],
-        // ]);
-    }
+        $order = Order::where('order_id', $order_id)->firstOrFail();
 
-    $this->sendStatusNotification($order, "Hasil pengerjaan pesanan anda telah diunggah, mohon segera periksa dan konfirmasi sudah sesuai dengan pesanan anda atau belum agar segera dilakukan pengiriman.");
+        // Ambil foto yang sudah ada, jika null atau kosong ubah jadi array
+        $existingPhotos = is_array($order->completed_photo_path) ? $order->completed_photo_path : [];
 
-    return redirect()->route('orders.index')->with('success', 'Foto hasil pengerjaan telah diunggah.');
-}
+        if ($request->hasFile('completed_photo')) {
+            foreach ($request->file('completed_photo') as $file) {
+                $path = $file->store('completed_photos', 'public');
+                $existingPhotos[] = $path;
+            }
 
-public function uploadRevisionPhoto(Request $request, $order_id)
-{
-    $request->validate([
-        'revised_photo.*' => 'required|image|mimes:jpeg,png,jpg|max:10240',
-    ]);
-
-    $order = Order::where('order_id', $order_id)->firstOrFail();
-
-    // Ambil OrderComplain terbaru untuk order ini
-    $latestComplain = $order->complains()->latest()->first();
-
-    // Jika tidak ada OrderComplain sebelumnya, buat baru
-    if (!$latestComplain) {
-        $latestComplain = $order->complains()->create([
-            // 'customer_confirmation' => 'pending',
-            'customer_feedback' => null,
-            'revised_photo_path' => [],
-        ]);
-    }
-
-    $existingPhotos = json_decode($latestComplain->revised_photo_path, true) ?? [];
-
-    if ($request->hasFile('revised_photo')) {
-        foreach ($request->file('revised_photo') as $file) {
-            $path = $file->store('revised_photos', 'public');
-            $existingPhotos[] = $path;
+            $order->update([
+                'completed_photo_path' => $existingPhotos,
+                'status' => 'waiting_for_cust_confirmation',
+                'customer_confirmation' => 'pending',
+            ]);
         }
-        // Update OrderComplain dengan foto revisi baru
-        $latestComplain->update([
-            'revised_photo_path' => $existingPhotos,
-        ]);
 
-        $order->update([
-            'status' => 'waiting_for_cust_confirmation',
-            'customer_confirmation' => 'pending',
-        ]);
+        $this->sendStatusNotification($order, "Hasil pengerjaan pesanan anda telah diunggah, mohon segera periksa dan konfirmasi sudah sesuai dengan pesanan anda atau belum agar segera dilakukan pengiriman.");
+
+        return redirect()->route('orders.index')->with('success', 'Foto hasil pengerjaan telah diunggah.');
     }
 
-    $this->sendStatusNotification($order, "Foto revisi pengerjaan pesanan anda telah diunggah, mohon segera periksa dan konfirmasi sudah sesuai dengan pesanan anda atau belum agar segera dilakukan pengiriman.");
+    public function uploadRevisionPhoto(Request $request, $order_id)
+    {
+        // Log input untuk debugging
+        Log::info('Upload Revision Photo Input:', $request->all());
 
-    return back()->with('success', 'Foto revisi berhasil diunggah.');
-}
+        // Log detail file yang diunggah
+        if ($request->hasFile('revised_photo')) {
+            $files = $request->file('revised_photo');
+            $fileDetails = collect($files)->map(function ($file) {
+                return [
+                    'name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime' => $file->getMimeType(),
+                ];
+            })->all();
+            Log::info('Uploaded revised photo details:', $fileDetails);
+        } else {
+            Log::info('No revised photos uploaded');
+        }
 
-// // Mengubah status menjadi "Siap Dikirim"
-//     public function markAsReadyToShip($order_id)
-//     {
-//         $order = Order::where('order_id', $order_id)->firstOrFail();
-//         $order->update([
-//             'status' => 'waiting_for_shipment'
-//         ]);
+        $request->validate([
+            'revised_photo.*' => 'required|image|mimes:jpeg,png,jpg,gif,heic|max:10240',
+        ], [
+            'revised_photo.*.required' => 'Foto revisi wajib diunggah.',
+            'revised_photo.*.image' => 'File harus berupa gambar.',
+            'revised_photo.*.mimes' => 'File harus berformat JPEG, PNG, JPG, GIF, atau HEIC.',
+            'revised_photo.*.max' => 'Setiap foto maksimal 10MB.',
+        ]);
 
-//         return redirect()->route('orders.index')->with('success', 'Pesanan siap untuk dikirim.');
-//     }
+        $order = Order::where('order_id', $order_id)->firstOrFail();
 
-   // ✅ Menampilkan daftar pesanan untuk customer (hanya pesanan miliknya)
-public function indexCustomer()
-{
-    $user = auth()->user();
+        // Ambil OrderComplain terbaru untuk order ini
+        $latestComplain = $order->complains()->latest()->first();
 
-    $orders = Order::with([
-            'offerPrice', // Memuat offerPrice langsung
-            'offerPrice.purchaseRequest.service', // Memuat service
-            'offerPrice.purchaseRequest.user' // Memuat user
+        // Jika tidak ada OrderComplain sebelumnya, buat baru
+        if (!$latestComplain) {
+            $latestComplain = $order->complains()->create([
+                'customer_feedback' => null,
+                'revised_photo_path' => [],
+            ]);
+        }
+
+        $existingPhotos = is_array($latestComplain->revised_photo_path) ? $latestComplain->revised_photo_path : [];
+
+        if ($request->hasFile('revised_photo')) {
+            foreach ($request->file('revised_photo') as $file) {
+                $path = $file->store('revised_photos', 'public');
+                $existingPhotos[] = $path;
+            }
+            // Update OrderComplain dengan foto revisi baru
+            $latestComplain->update([
+                'revised_photo_path' => $existingPhotos,
+            ]);
+
+            $order->update([
+                'status' => 'waiting_for_cust_confirmation',
+                'customer_confirmation' => 'pending',
+            ]);
+        }
+
+        $this->sendStatusNotification($order, "Foto revisi pengerjaan pesanan anda telah diunggah, mohon segera periksa dan konfirmasi sudah sesuai dengan pesanan anda atau belum agar segera dilakukan pengiriman.");
+
+        return back()->with('success', 'Foto revisi berhasil diunggah.');
+    }
+
+    public function indexCustomer()
+    {
+        $user = auth()->user();
+
+        $orders = Order::with([
+            'offerPrice',
+            'offerPrice.purchaseRequest.service',
+            'offerPrice.purchaseRequest.user'
         ])
         ->whereHas('offerPrice.purchaseRequest', function ($query) use ($user) {
             $query->where('user_id', $user->id);
@@ -255,21 +262,18 @@ public function indexCustomer()
         ->orderBy('created_at', 'desc')
         ->get();
 
-    return Inertia::render('Orders/CustomerIndex', [
-        'orders' => $orders
-    ]);
-}
+        return Inertia::render('Orders/CustomerIndex', [
+            'orders' => $orders
+        ]);
+    }
 
+    public function showCustomer($order_id)
+    {
+        $user = auth()->user();
 
-// ✅ Menampilkan detail pesanan sesuai role
-public function showCustomer($order_id)
-{
-    $user = auth()->user();
-
-    // Mengambil order berdasarkan purchaseRequest yang dimiliki oleh user
-    $order = Order::with([
-            'offerPrice', 
-            'offerPrice.purchaseRequest.service', 
+        $order = Order::with([
+            'offerPrice',
+            'offerPrice.purchaseRequest.service',
             'offerPrice.purchaseRequest.user',
             'complains',
             'shipping',
@@ -281,21 +285,38 @@ public function showCustomer($order_id)
         ->where('order_id', $order_id)
         ->firstOrFail();
 
-    return Inertia::render('Orders/CustomerShow', [
-        'order' => $order,
-        // 'flash' => [
-        //     'success' => session('success'),
-        //     'error' => session('error'),
-        // ],
-        // 'latestComplain' =>$latestComplain
-    ]);
-}
+        return Inertia::render('Orders/CustomerShow', [
+            'order' => $order,
+        ]);
+    }
 
-public function confirmShipmentCustomer(Request $request, $order_id)
+   public function confirmShipmentCustomer(Request $request, $order_id)
 {
+    // Log input untuk debugging
+    Log::info('Confirm Shipment Customer Input:', $request->all());
+
+    // Log detail file yang diunggah
+    if ($request->hasFile('shipping_proof_customer')) {
+        $file = $request->file('shipping_proof_customer');
+        $fileDetails = [
+            'name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime' => $file->getMimeType(),
+        ];
+        Log::info('Uploaded shipping proof details:', $fileDetails);
+    } else {
+        Log::info('No shipping proof uploaded');
+    }
+
     $request->validate([
         'shipping_receipt_customer' => 'required|string',
-        'shipping_proof_customer' => 'required|image|max:10240',
+        'shipping_proof_customer' => 'required|image|mimes:jpeg,png,jpg,gif,heic|max:10240',
+    ], [
+        'shipping_receipt_customer.required' => 'Nomor resi pengiriman wajib diisi.',
+        'shipping_proof_customer.required' => 'Bukti pengiriman wajib diunggah.',
+        'shipping_proof_customer.image' => 'Bukti pengiriman harus berupa gambar.',
+        'shipping_proof_customer.mimes' => 'Bukti pengiriman harus berformat JPEG, PNG, JPG, GIF, atau HEIC.',
+        'shipping_proof_customer.max' => 'Bukti pengiriman maksimal 10MB.',
     ]);
 
     $order = Order::where('order_id', $order_id)
@@ -319,48 +340,46 @@ public function confirmShipmentCustomer(Request $request, $order_id)
 
     return redirect()->back()->with('success', 'Pengiriman barang telah dikonfirmasi.');
 }
-
-public function confirmCustomerOrder(Request $request, $order_id)
-{
-    $request->validate([
-        'customer_confirmation' => 'required|in:approved,rejected',
-        'customer_feedback' => 'nullable|string|max:500',
-    ]);
-
-    $order = Order::where('order_id', $order_id)->with('offerPrice.payments')->firstOrFail();
-
-    // Save feedback to order_complains table
-    $order->complains()->create([
-        'customer_feedback' => $request->customer_feedback,
-    ]);
-
-    if ($request->customer_confirmation === 'approved') {
-        // Check if there is a payment with "success" status (full payment)
-        $hasFullPayment = $order->offerPrice->payments()->where('payment_status', 'success')->exists();
-
-        $order->update([
-            'status' => $hasFullPayment ? 'waiting_for_shipment' : 'waiting_for_payment',
-            'customer_confirmation' => 'approved'
+    public function confirmCustomerOrder(Request $request, $order_id)
+    {
+        $request->validate([
+            'customer_confirmation' => 'required|in:approved,rejected',
+            'customer_feedback' => 'nullable|string|max:500',
         ]);
 
-        // Send appropriate notification based on payment status
-        $notificationMessage = $hasFullPayment
-            ? "Anda telah menyetujui hasil pengerjaan. Pesanan Anda sedang disiapkan untuk pengiriman."
-            : "Anda telah menyetujui hasil pengerjaan. Mohon segera lakukan pembayaran penuh agar pesanan anda segera dikirim ke alamat anda.";
-        
-        $this->sendStatusNotification($order, $notificationMessage);
-        $this->sendAdminStatusNotification($order, "Pelanggan {$order->offerPrice->purchaseRequest->user->full_name} telah menyetujui pesanan (ID: {$order->order_id}). Silahkan lanjutkan ke proses pengiriman.");
-    } else {
-        $order->update([
-            'status' => 'customer_complain',
-            'customer_confirmation' => 'rejected'
+        $order = Order::where('order_id', $order_id)->with('offerPrice.payments')->firstOrFail();
+
+        // Save feedback to order_complains table
+        $order->complains()->create([
+            'customer_feedback' => $request->customer_feedback,
         ]);
-        
-        $this->sendStatusNotification($order, "Anda telah mengkonfirmasi hasil pengerjaan, mohon menunggu revisi pengerjaan pesanan anda terbaru. Terima kasih atas konfirmasinya agar pesanan anda sesuai apa yang anda inginkan :)");
-        $this->sendAdminStatusNotification($order, "Pelanggan {$order->offerPrice->purchaseRequest->user->full_name} telah mengajukan keluhan untuk pesanan (ID: {$order->order_id}). Silahkan tinjau dan lakukan revisi.");
+
+        if ($request->customer_confirmation === 'approved') {
+            // Check if there is a payment with "success" status (full payment)
+            $hasFullPayment = $order->offerPrice->payments()->where('payment_status', 'success')->exists();
+
+            $order->update([
+                'status' => $hasFullPayment ? 'waiting_for_shipment' : 'waiting_for_payment',
+                'customer_confirmation' => 'approved'
+            ]);
+
+            // Send appropriate notification based on payment status
+            $notificationMessage = $hasFullPayment
+                ? "Anda telah menyetujui hasil pengerjaan. Pesanan Anda sedang disiapkan untuk pengiriman."
+                : "Anda telah menyetujui hasil pengerjaan. Mohon segera lakukan pembayaran penuh agar pesanan anda segera dikirim ke alamat anda.";
+            
+            $this->sendStatusNotification($order, $notificationMessage);
+            $this->sendAdminStatusNotification($order, "Pelanggan {$order->offerPrice->purchaseRequest->user->full_name} telah menyetujui pesanan (ID: {$order->order_id}). Silahkan lanjutkan ke proses pengiriman.");
+        } else {
+            $order->update([
+                'status' => 'customer_complain',
+                'customer_confirmation' => 'rejected'
+            ]);
+            
+            $this->sendStatusNotification($order, "Anda telah mengkonfirmasi hasil pengerjaan, mohon menunggu revisi pengerjaan pesanan anda terbaru. Terima kasih atas konfirmasinya agar pesanan anda sesuai apa yang anda inginkan :)");
+            $this->sendAdminStatusNotification($order, "Pelanggan {$order->offerPrice->purchaseRequest->user->full_name} telah mengajukan keluhan untuk pesanan (ID: {$order->order_id}). Silahkan tinjau dan lakukan revisi.");
+        }
+
+        return redirect()->route('orders-customer.show', $order_id)->with('success', 'Konfirmasi berhasil disimpan.');
     }
-
-    return redirect()->route('orders-customer.show', $order_id)->with('success', 'Konfirmasi berhasil disimpan.');
-}
-
 }

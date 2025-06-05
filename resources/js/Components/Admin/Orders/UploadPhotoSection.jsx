@@ -25,7 +25,7 @@ export default function UploadPhotoSection({
 
     const openPhoto = (photo, e) => {
         e.stopPropagation();
-        setSelectedPhoto(photo.preview); // Gunakan preview dari photo object
+        setSelectedPhoto(photo.preview);
     };
 
     const closePhoto = (e) => {

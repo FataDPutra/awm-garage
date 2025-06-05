@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Compressor from "compressorjs";
 import { usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import { Package } from "lucide-react";
@@ -20,11 +21,40 @@ export default function Show() {
 
     // Actions for completed photos
     const handleCompletedPhotoChange = (files) => {
-        const newPhotos = files.map((file) => ({
-            file,
-            preview: URL.createObjectURL(file),
-        }));
-        setCompletedPhoto((prev) => [...prev, ...newPhotos]);
+        const validFiles = Array.from(files).filter((file) =>
+            [
+                "image/jpeg",
+                "image/png",
+                "image/jpg",
+                "image/gif",
+                "image/heic",
+            ].includes(file.type)
+        );
+
+        validFiles.forEach((file) => {
+            new Compressor(file, {
+                quality: 0.8,
+                maxWidth: 1024,
+                maxHeight: 1024,
+                mimeType: "image/jpeg",
+                success(compressedFile) {
+                    const newPhoto = {
+                        file: compressedFile,
+                        preview: URL.createObjectURL(compressedFile),
+                    };
+                    setCompletedPhoto((prev) => [...prev, newPhoto]);
+                },
+                error(err) {
+                    console.error("Compression error:", err);
+                },
+            });
+        });
+
+        if (validFiles.length !== files.length) {
+            alert(
+                "Beberapa file tidak valid. Hanya gambar (JPEG, PNG, JPG, GIF, HEIC) yang diperbolehkan."
+            );
+        }
     };
 
     const handleRemoveCompletedPhoto = (index) => {
@@ -48,18 +78,50 @@ export default function Show() {
                     setCompletedPhoto([]);
                 },
                 onError: (errors) =>
-                    alert("Gagal mengunggah foto: " + errors.completedPhoto),
+                    alert(
+                        "Gagal mengunggah foto: " +
+                            (errors.completed_photo || "Unknown error")
+                    ),
             }
         );
     };
 
     // Actions for revised photos
     const handleRevisedPhotoChange = (files) => {
-        const newPhotos = files.map((file) => ({
-            file,
-            preview: URL.createObjectURL(file),
-        }));
-        setRevisedPhoto((prev) => [...prev, ...newPhotos]);
+        const validFiles = Array.from(files).filter((file) =>
+            [
+                "image/jpeg",
+                "image/png",
+                "image/jpg",
+                "image/gif",
+                "image/heic",
+            ].includes(file.type)
+        );
+
+        validFiles.forEach((file) => {
+            new Compressor(file, {
+                quality: 0.8,
+                maxWidth: 1024,
+                maxHeight: 1024,
+                mimeType: "image/jpeg",
+                success(compressedFile) {
+                    const newPhoto = {
+                        file: compressedFile,
+                        preview: URL.createObjectURL(compressedFile),
+                    };
+                    setRevisedPhoto((prev) => [...prev, newPhoto]);
+                },
+                error(err) {
+                    console.error("Compression error:", err);
+                },
+            });
+        });
+
+        if (validFiles.length !== files.length) {
+            alert(
+                "Beberapa file tidak valid. Hanya gambar (JPEG, PNG, JPG, GIF, HEIC) yang diperbolehkan."
+            );
+        }
     };
 
     const handleRemoveRevisedPhoto = (index) => {

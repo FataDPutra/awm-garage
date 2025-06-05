@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Upload, ZoomIn, X } from "lucide-react";
+import { Upload, ZoomIn, X, MapPin } from "lucide-react"; // Tambahkan MapPin untuk ikon alamat
+import Compressor from "compressorjs";
 
 export default function ShippingConfirmationSection({
     order,
@@ -39,22 +40,50 @@ export default function ShippingConfirmationSection({
             onError: (errors) =>
                 alert(
                     "Gagal mengkonfirmasi pengiriman: " +
-                        (errors.message || "Unknown error")
+                        (errors.shipping_proof_customer ||
+                            errors.shipping_receipt_customer ||
+                            "Unknown error")
                 ),
         });
     };
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setData("shipping_proof_customer", file);
-            setPreviewImage(URL.createObjectURL(file));
+        if (!file) return;
+
+        const validTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/jpg",
+            "image/gif",
+            "image/heic",
+        ];
+        if (!validTypes.includes(file.type)) {
+            alert(
+                "File tidak valid. Hanya gambar (JPEG, PNG, JPG, GIF, HEIC) yang diperbolehkan."
+            );
+            return;
         }
+
+        new Compressor(file, {
+            quality: 0.8,
+            maxWidth: 1024,
+            maxHeight: 1024,
+            mimeType: "image/jpeg",
+            success(compressedFile) {
+                setData("shipping_proof_customer", compressedFile);
+                setPreviewImage(URL.createObjectURL(compressedFile));
+            },
+            error(err) {
+                console.error("Compression error:", err);
+                alert("Gagal mengompresi gambar.");
+            },
+        });
     };
 
     const openPhoto = (photo, e) => {
         e.stopPropagation();
-        setSelectedPhoto(photo); // Gunakan path langsung (previewImage)
+        setSelectedPhoto(photo);
     };
 
     const closePhoto = (e) => {
@@ -67,6 +96,27 @@ export default function ShippingConfirmationSection({
             <h3 className="text-lg font-semibold text-gray-700 mb-4">
                 Konfirmasi Pengiriman Barang
             </h3>
+            {/* Informasi Alamat Pengiriman */}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-md">
+                <div className="flex items-start">
+                    <MapPin size={20} className="text-blue-500 mr-2 mt-1" />
+                    <div>
+                        <p className="text-sm font-medium text-gray-800">
+                            Mohon lakukan pengiriman barang ke alamat bengkel
+                            AWM Garage:
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Jl. Mendut Raya, RT.4/RW.3, Kelurahan Candirejo,
+                            Kecamatan Ungaran Barat, Kabupaten Semarang, Jawa
+                            Tengah 50513
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                            <span className="font-medium">Telp:</span>{" "}
+                            089638892960
+                        </p>
+                    </div>
+                </div>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -158,7 +208,7 @@ export default function ShippingConfirmationSection({
                         />
                         <button
                             onClick={closePhoto}
-                            className="absolute top-4 right-4 bg-gray-800 text-white p-2 rounded-full hover:bg-gray-900 transition-all duration-200 z-10 shadow-md"
+                            className="absolute top-4 right-4 bg-gray-800 text-white p-2 rounded-full hover:bg-gray-900 transition-all duration-200 z-10"
                         >
                             <X size={20} />
                         </button>

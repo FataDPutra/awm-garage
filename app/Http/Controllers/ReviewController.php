@@ -31,14 +31,33 @@ class ReviewController extends Controller
             $request->validate([
                 'rating' => 'required|integer|min:1|max:5',
                 'review' => 'nullable|string|max:1000',
-                'review_media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mov,avi,quicktime|max:10240',
+                'review_media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,heic,mp4,mov,avi,quicktime|max:10240',
+            ], [
+                'rating.required' => 'Rating wajib diisi.',
+                'rating.integer' => 'Rating harus berupa angka.',
+                'rating.min' => 'Rating minimal 1.',
+                'rating.max' => 'Rating maksimal 5.',
+                'review.max' => 'Ulasan maksimal 1000 karakter.',
+                'review_media.*.file' => 'Media harus berupa file.',
+                'review_media.*.mimes' => 'Media harus berformat JPEG, PNG, JPG, GIF, HEIC, MP4, MOV, atau AVI.',
+                'review_media.*.max' => 'Setiap media maksimal 10MB.',
             ]);
 
             // Log request untuk debugging
-            Log::info('Request data:', $request->all());
-            Log::info('Files in request:', [
-                'files' => $request->hasFile('review_media') ? array_keys($request->file('review_media')) : ['No files']
-            ]);
+            Log::info('Store Review Request Data:', $request->all());
+            if ($request->hasFile('review_media')) {
+                $files = $request->file('review_media');
+                $fileDetails = collect($files)->map(function ($file) {
+                    return [
+                        'name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime' => $file->getMimeType(),
+                    ];
+                })->all();
+                Log::info('Uploaded review media details:', $fileDetails);
+            } else {
+                Log::info('No review media uploaded.');
+            }
 
             // Proses file media
             $mediaPaths = [];
@@ -47,21 +66,19 @@ class ReviewController extends Controller
                     if ($media->isValid()) {
                         $path = $media->store('review_media', 'public');
                         $mediaPaths[] = $path;
-                        Log::info("Stored file at index $index:", [
+                        Log::info("Stored review media at index $index:", [
                             'path' => $path,
                             'name' => $media->getClientOriginalName(),
                             'mime' => $media->getMimeType(),
                             'size' => $media->getSize(),
                         ]);
                     } else {
-                        Log::warning("Invalid file at index $index:", [
+                        Log::warning("Invalid review media at index $index:", [
                             'name' => $media->getClientOriginalName(),
                             'error' => $media->getErrorMessage(),
                         ]);
                     }
                 }
-            } else {
-                Log::info('No files uploaded for review.', []);
             }
 
             // Simpan review
@@ -77,12 +94,16 @@ class ReviewController extends Controller
 
             return redirect()->back()->with('success', 'Rating dan review berhasil disimpan.');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed:', $e->errors());
+            Log::error('Validation failed for review:', [
+                'errors' => $e->errors(),
+                'request' => $request->all(),
+            ]);
             return redirect()->back()->withErrors($e->errors())->with('error', 'Validasi gagal.');
         } catch (\Exception $e) {
             Log::error('Error saving review:', [
                 'message' => $e->getMessage(),
-                'exception' => $e
+                'exception' => get_class($e),
+                'trace' => $e->getTraceAsString(),
             ]);
             return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan review.');
         }

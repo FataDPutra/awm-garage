@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Star, Upload, ZoomIn, X } from "lucide-react";
 import { Inertia } from "@inertiajs/inertia";
+import Compressor from "compressorjs";
 
 export default function ReviewsSection({
     order,
@@ -14,9 +15,10 @@ export default function ReviewsSection({
     setReviewMediaPreviews,
     hoverRating,
     setHoverRating,
+    handleReviewMediaChange, // Diterima dari CustomerShow.jsx
 }) {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
-    const [selectedMediaType, setSelectedMediaType] = useState("image"); // Untuk membedakan image/video di modal
+    const [selectedMediaType, setSelectedMediaType] = useState("image");
 
     if (order.status !== "completed") return null;
 
@@ -25,6 +27,7 @@ export default function ReviewsSection({
         "image/png",
         "image/jpg",
         "image/gif",
+        "image/heic",
         "video/mp4",
         "video/quicktime",
         "video/x-msvideo",
@@ -78,11 +81,11 @@ export default function ReviewsSection({
         });
     };
 
-    const handleReviewMediaChange = (e) => {
+    const handleLocalReviewMediaChange = (e) => {
         const newFiles = Array.from(e.target.files).filter((file) => {
             if (!allowedFileTypes.includes(file.type)) {
                 alert(
-                    `File ${file.name} tidak didukung. Gunakan jpg, png, gif, mp4, mov, atau avi.`
+                    `File ${file.name} tidak didukung. Gunakan jpg, png, gif, heic, mp4, mov, atau avi.`
                 );
                 return false;
             }
@@ -99,12 +102,38 @@ export default function ReviewsSection({
         }
 
         if (newFiles.length) {
-            const updatedFiles = [...data.review_media, ...newFiles];
-            setData("review_media", updatedFiles);
-            const updatedPreviews = updatedFiles.map((file) =>
-                file instanceof File ? URL.createObjectURL(file) : file
-            );
-            setReviewMediaPreviews(updatedPreviews);
+            newFiles.forEach((file) => {
+                const isImage = file.type.startsWith("image/");
+                if (isImage) {
+                    new Compressor(file, {
+                        quality: 0.8,
+                        maxWidth: 1024,
+                        maxHeight: 1024,
+                        mimeType: "image/jpeg",
+                        success(compressedFile) {
+                            setData("review_media", [
+                                ...data.review_media,
+                                compressedFile,
+                            ]);
+                            setReviewMediaPreviews((prev) => [
+                                ...prev,
+                                URL.createObjectURL(compressedFile),
+                            ]);
+                        },
+                        error(err) {
+                            console.error("Compression error:", err);
+                            alert(`Gagal mengompresi file ${file.name}.`);
+                        },
+                    });
+                } else {
+                    // File video tidak dikompresi
+                    setData("review_media", [...data.review_media, file]);
+                    setReviewMediaPreviews((prev) => [
+                        ...prev,
+                        URL.createObjectURL(file),
+                    ]);
+                }
+            });
         }
     };
 
@@ -120,7 +149,7 @@ export default function ReviewsSection({
     const openPhoto = (path, type, e) => {
         e.stopPropagation();
         setSelectedPhoto(path);
-        setSelectedMediaType(type); // "image" atau "video"
+        setSelectedMediaType(type);
     };
 
     const closePhoto = (e) => {
@@ -294,9 +323,9 @@ export default function ReviewsSection({
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
                             <input
                                 type="file"
-                                accept="image/jpeg,image/png,image/jpg,image/gif,video/mp4,video/quicktime,video/x-msvideo"
+                                accept="image/jpeg,image/png,image/jpg,image/gif,image/heic,video/mp4,video/quicktime,video/x-msvideo"
                                 multiple
-                                onChange={handleReviewMediaChange}
+                                onChange={handleLocalReviewMediaChange}
                                 className="hidden"
                                 id="review-media-upload"
                             />
@@ -314,7 +343,7 @@ export default function ReviewsSection({
                                         klik untuk memilih
                                     </span>
                                     <br />
-                                    (jpg, png, gif, mp4, mov, avi)
+                                    (jpg, png, gif, heic, mp4, mov, avi)
                                 </p>
                             </label>
                         </div>
@@ -378,7 +407,7 @@ export default function ReviewsSection({
                                                                 index
                                                             );
                                                         }}
-                                                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-shadow duration-200"
                                                     >
                                                         ×
                                                     </button>
