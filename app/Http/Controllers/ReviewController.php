@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class ReviewController extends Controller
 {
-    public function storeReview(Request $request, $order_id)
+ public function storeReview(Request $request, $order_id)
     {
         try {
             $order = Order::with(['offerPrice.purchaseRequest'])
@@ -31,7 +31,7 @@ class ReviewController extends Controller
             $request->validate([
                 'rating' => 'required|integer|min:1|max:5',
                 'review' => 'nullable|string|max:1000',
-                'review_media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,heic,mp4,mov,avi,quicktime|max:10240',
+                'review_media.*' => 'nullable|file|mimes:jpeg,png,jpg,gif,heic,heif,mp4,mov,avi,quicktime|max:10240',
             ], [
                 'rating.required' => 'Rating wajib diisi.',
                 'rating.integer' => 'Rating harus berupa angka.',
@@ -39,7 +39,7 @@ class ReviewController extends Controller
                 'rating.max' => 'Rating maksimal 5.',
                 'review.max' => 'Ulasan maksimal 1000 karakter.',
                 'review_media.*.file' => 'Media harus berupa file.',
-                'review_media.*.mimes' => 'Media harus berformat JPEG, PNG, JPG, GIF, HEIC, MP4, MOV, atau AVI.',
+                'review_media.*.mimes' => 'Media harus berformat JPEG, PNG, JPG, GIF, HEIC, HEIF, MP4, MOV, atau AVI.',
                 'review_media.*.max' => 'Setiap media maksimal 10MB.',
             ]);
 

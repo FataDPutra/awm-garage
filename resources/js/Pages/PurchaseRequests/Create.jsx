@@ -61,7 +61,6 @@ export default function Create() {
     const [formErrors, setFormErrors] = useState([]);
     const [availableAdditionals, setAvailableAdditionals] = useState([]);
 
-    // Check if profile address data is incomplete
     const isProfileIncomplete =
         !auth.user?.address ||
         !auth.user?.zip_code ||
@@ -301,24 +300,6 @@ export default function Create() {
         auth.user?.zip_code,
     ]);
 
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        const validFiles = files.filter((file) => {
-            const isValidType = [
-                "image/jpeg",
-                "image/png",
-                "image/jpg",
-                "image/gif",
-                "image/heic",
-            ].includes(file.type);
-            return isValidType;
-        });
-        const newPhotos = [...data.photos, ...validFiles];
-        setData("photos", newPhotos);
-        const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
-        setPhotoPreviews([...photoPreviews, ...newPreviews]);
-    };
-
     const handleRemovePhoto = (index) => {
         const updatedPhotos = data.photos.filter((_, i) => i !== index);
         const updatedPreviews = photoPreviews.filter((_, i) => i !== index);
@@ -462,7 +443,6 @@ export default function Create() {
             }
         >
             <Head title="Buat Pesanan" />
-            {/* Profile Incomplete Alert */}
             {showProfileAlert && isProfileIncomplete && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-pulse">
@@ -500,7 +480,6 @@ export default function Create() {
                     </div>
                 </div>
             )}
-            {/* Jawa Tengah Location Alert */}
             {!showProfileAlert && showLocationAlert && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-pulse">
@@ -576,7 +555,6 @@ export default function Create() {
                         photoPreviews={photoPreviews}
                         setPhotoPreviews={setPhotoPreviews}
                         formErrors={formErrors}
-                        handleFileChange={handleFileChange}
                         handleRemovePhoto={handleRemovePhoto}
                     />
                     <WeightInput

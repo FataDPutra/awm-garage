@@ -107,16 +107,34 @@ class ServiceController extends Controller
 
     public function store(Request $request)
     {
+        Log::info('Store Service Request Input:', $request->all());
+        if ($request->hasFile('additionals.*.image')) {
+            $fileDetails = collect($request->file('additionals'))->map(function ($file, $index) {
+                return [
+                    'index' => $index,
+                    'name' => $file['image']->getClientOriginalName(),
+                    'size' => $file['image']->getSize(),
+                    'mime' => $file['image']->getMimeType(),
+                ];
+            })->all();
+            Log::info('Uploaded files details:', $fileDetails);
+        }
+
         $request->validate([
             'service_name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
             'base_price' => 'required|numeric|min:0',
             'additionals' => 'nullable|array',
             'additionals.*.additional_type_id' => 'nullable|exists:additional_types,id',
-            'additionals.*.new_type' => 'nullable|string|max:255',
-            'additionals.*.name' => 'required_with:additionals|string',
-            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'additionals.*.new_type' => 'nullable|string|max:100|unique:additional_types,name',
+            'additionals.*.name' => 'required_with:additionals|string|max:255',
+            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif,heic,heif|max:10240',
             'additionals.*.additional_price' => 'nullable|numeric|min:0',
+        ], [
+            'additionals.*.image.mimes' => 'Gambar harus berformat JPEG, PNG, JPG, GIF, HEIC, atau HEIF.',
+            'additionals.*.image.max' => 'Setiap gambar maksimal 10MB.',
+            'additionals.*.new_type.unique' => 'Tipe tambahan sudah ada.',
+            'additionals.*.new_type.max' => 'Nama tipe tambahan maksimal 100 karakter.',
         ]);
 
         $service = Service::create([
@@ -128,9 +146,10 @@ class ServiceController extends Controller
         if ($request->has('additionals')) {
             foreach ($request->additionals as $index => $additional) {
                 $additionalTypeId = $additional['additional_type_id'];
-                if (!$additionalTypeId && $additional['new_type']) {
+                if (!$additionalTypeId && !empty($additional['new_type'])) {
                     $newType = AdditionalType::firstOrCreate(['name' => $additional['new_type']]);
                     $additionalTypeId = $newType->id;
+                    Log::info('Created new AdditionalType:', ['name' => $newType->name, 'id' => $newType->id]);
                 }
                 if (!$additionalTypeId) {
                     Log::warning('Skipping additional due to null additional_type_id:', ['additional' => $additional]);
@@ -140,6 +159,7 @@ class ServiceController extends Controller
                 $imagePath = null;
                 if ($request->hasFile("additionals.{$index}.image")) {
                     $imagePath = $request->file("additionals.{$index}.image")->store('service_additionals', 'public');
+                    Log::info('Stored image:', ['path' => $imagePath, 'mime' => $request->file("additionals.{$index}.image")->getMimeType()]);
                 }
 
                 ServiceAdditional::create([
@@ -152,7 +172,7 @@ class ServiceController extends Controller
             }
         }
 
-        return redirect()->route('services.index')->with('success', 'Service created successfully.');
+        return redirect()->route('services.index')->with('success', 'Layanan berhasil dibuat.');
     }
 
     public function edit($id)
@@ -174,22 +194,36 @@ class ServiceController extends Controller
 
     public function update(Request $request, $id)
     {
-        Log::info('Update request received:', [
-            'inputs' => $request->all(),
-            'files' => $request->allFiles(),
-        ]);
+        Log::info('Update Service Request Input:', $request->all());
+        if ($request->hasFile('additionals.*.image')) {
+            $fileDetails = collect($request->file('additionals'))->map(function ($file, $index) {
+                return [
+                    'index' => $index,
+                    'name' => $file['image']->getClientOriginalName(),
+                    'size' => $file['image']->getSize(),
+                    'mime' => $file['image']->getMimeType(),
+                ];
+            })->all();
+            Log::info('Uploaded files details in update:', $fileDetails);
+        }
 
         $validated = $request->validate([
             'service_name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
             'base_price' => 'required|numeric|min:0',
             'additionals' => 'nullable|array',
             'additionals.*.id' => 'nullable|exists:service_additionals,id',
             'additionals.*.additional_type_id' => 'nullable|exists:additional_types,id',
+            'additionals.*.new_type' => 'nullable|string|max:100|unique:additional_types,name',
             'additionals.*.name' => 'required|string|max:255',
-            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'additionals.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif,heic,heif|max:10240',
             'additionals.*.image_path' => 'nullable|string',
             'additionals.*.additional_price' => 'nullable|numeric|min:0',
+        ], [
+            'additionals.*.image.mimes' => 'Gambar harus berformat JPEG, PNG, JPG, GIF, HEIC, atau HEIF.',
+            'additionals.*.image.max' => 'Setiap gambar maksimal 10MB.',
+            'additionals.*.new_type.unique' => 'Tipe tambahan sudah ada.',
+            'additionals.*.new_type.max' => 'Nama tipe tambahan maksimal 100 karakter.',
         ]);
 
         Log::info('Validated data:', $validated);
@@ -203,36 +237,53 @@ class ServiceController extends Controller
 
         if ($request->has('additionals')) {
             $existingIds = array_filter(array_column($request->additionals, 'id'));
-            ServiceAdditional::where('service_id', $service->id)
+            $deleted = ServiceAdditional::where('service_id', $service->id)
                 ->whereNotIn('id', $existingIds)
-                ->delete();
+                ->get();
+            foreach ($deleted as $item) {
+                if ($item->image_path && Storage::disk('public')->exists($item->image_path)) {
+                    Storage::disk('public')->delete($item->image_path);
+                    Log::info('Deleted old image:', ['path' => $item->image_path]);
+                }
+            }
+            $deleted->each->delete();
 
             foreach ($request->additionals as $index => $additional) {
                 $existingAdditional = !empty($additional['id'])
                     ? ServiceAdditional::find($additional['id'])
                     : null;
 
+                $additionalTypeId = $additional['additional_type_id'];
+                if (!$additionalTypeId && !empty($additional['new_type'])) {
+                    $newType = AdditionalType::firstOrCreate(['name' => $additional['new_type']]);
+                    $additionalTypeId = $newType->id;
+                    Log::info('Created new AdditionalType:', ['name' => $newType->name, 'id' => $newType->id]);
+                }
+                if (!$additionalTypeId) {
+                    $additionalTypeId = $existingAdditional ? $existingAdditional->additional_type_id : null;
+                    if (!$additionalTypeId) {
+                        Log::warning('Skipping additional due to null additional_type_id:', ['additional' => $additional]);
+                        continue;
+                    }
+                }
+
                 $imagePath = $additional['image_path'] ?? ($existingAdditional ? $existingAdditional->image_path : null);
                 if ($request->hasFile("additionals.{$index}.image")) {
                     if ($imagePath && Storage::disk('public')->exists($imagePath)) {
                         Storage::disk('public')->delete($imagePath);
+                        Log::info('Deleted old image:', ['path' => $imagePath]);
                     }
                     $imagePath = $request->file("additionals.{$index}.image")
                         ->store('service_additionals', 'public');
-                }
-
-                $additionalTypeId = $additional['additional_type_id'] ?? ($existingAdditional ? $existingAdditional->additional_type_id : null);
-                if (!$additionalTypeId) {
-                    Log::warning('Skipping additional due to null additional_type_id:', ['additional' => $additional]);
-                    continue;
+                    Log::info('Stored image:', ['path' => $imagePath, 'mime' => $request->file("additionals.{$index}.image")->getMimeType()]);
                 }
 
                 $data = [
                     'service_id' => $service->id,
                     'additional_type_id' => $additionalTypeId,
-                    'name' => $additional['name'] ?? ($existingAdditional ? $existingAdditional->name : ''),
+                    'name' => $additional['name'],
                     'image_path' => $imagePath,
-                    'additional_price' => $additional['additional_price'] ?? ($existingAdditional ? $existingAdditional->additional_price : 0),
+                    'additional_price' => $additional['additional_price'] ?? 0,
                 ];
 
                 if ($existingAdditional) {
@@ -242,19 +293,33 @@ class ServiceController extends Controller
                 }
             }
         } else {
-            ServiceAdditional::where('service_id', $service->id)->delete();
+            $deleted = ServiceAdditional::where('service_id', $service->id)->get();
+            foreach ($deleted as $item) {
+                if ($item->image_path && Storage::disk('public')->exists($item->image_path)) {
+                    Storage::disk('public')->delete($item->image_path);
+                    Log::info('Deleted old image:', ['path' => $item->image_path]);
+                }
+            }
+            $deleted->each->delete();
         }
 
         return redirect()->route('services.index')
-            ->with('success', 'Service updated successfully.');
+            ->with('success', 'Layanan berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
         $service = Service::findOrFail($id);
+        $additionals = ServiceAdditional::where('service_id', $id)->get();
+        foreach ($additionals as $additional) {
+            if ($additional->image_path && Storage::disk('public')->exists($additional->image_path)) {
+                Storage::disk('public')->delete($additional->image_path);
+                Log::info('Deleted image:', ['path' => $additional->image_path]);
+            }
+        }
         $service->delete();
 
         return redirect()->route('services.index')
-            ->with('success', 'Service deleted successfully.');
+            ->with('success', 'Layanan berhasil dihapus.');
     }
 }

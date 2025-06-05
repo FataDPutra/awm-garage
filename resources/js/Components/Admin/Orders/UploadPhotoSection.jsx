@@ -9,6 +9,7 @@ export default function UploadPhotoSection({
     onUpload,
     buttonText,
     complaint,
+    isChrome, // Tambahkan prop isChrome
 }) {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
 
@@ -56,7 +57,7 @@ export default function UploadPhotoSection({
                 >
                     <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/jpg,image/gif,image/heic,image/heif"
                         multiple
                         onChange={handleFileChange}
                         className="hidden"
@@ -77,9 +78,18 @@ export default function UploadPhotoSection({
                             <span className="text-blue-600 underline">
                                 klik untuk memilih
                             </span>
+                            <br />
+                            (jpg, png, gif, heic, heif)
                         </p>
                     </label>
                 </div>
+                {isChrome && (
+                    <p className="text-sm text-yellow-600 mt-2">
+                        Catatan: Chrome mungkin tidak mendukung file HEIC. Jika
+                        gagal, konversi file HEIC ke JPEG menggunakan alat
+                        seperti Preview (Mac) atau konverter online.
+                    </p>
+                )}
                 {photos.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {photos.map((photo, index) => (
@@ -119,7 +129,6 @@ export default function UploadPhotoSection({
                 </button>
             </form>
 
-            {/* Modal untuk foto ukuran penuh */}
             {selectedPhoto && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4 overflow-auto"

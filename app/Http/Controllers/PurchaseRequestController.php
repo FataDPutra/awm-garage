@@ -37,7 +37,7 @@ class PurchaseRequestController extends Controller
         $message = "Halo {$user->full_name}, permintaan pembelian Anda (ID: {$purchaseRequest->id}) telah diperbarui: {$statusMessage} Silahkan pantau pesanan anda secara berkala melalui website https://awmgarage.store";
         $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
 
-        $response = Http::asForm()->post($url, [
+      $response = Http::asForm()->post($url, [
             'userkey' => $userkey,
             'passkey' => $passkey,
             'to' => $user->phone,

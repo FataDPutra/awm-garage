@@ -97,8 +97,11 @@ export default function Edit() {
             })) || [],
     });
 
+    // Inisialisasi pratinjau foto dengan URL penyimpanan publik
     const [photoPreviews, setPhotoPreviews] = useState(
-        purchaseRequest.photos?.map((path) => `/photos/${path}`) || []
+        purchaseRequest.photo_path?.map(
+            (path) => `${window.location.origin}/storage/${path}`
+        ) || []
     );
     const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
     const [shippingOptionsToAdmin, setShippingOptionsToAdmin] = useState([]);
@@ -169,12 +172,16 @@ export default function Edit() {
             axios
                 .get(`/locations?search=${encodeURIComponent(searchValue)}`)
                 .then((response) => {
+                    console.log(
+                        `Fetched ${type} locations:`,
+                        response.data.data
+                    );
                     type === "source"
                         ? setSourceLocations(response.data.data || [])
                         : setDestinationLocations(response.data.data || []);
                 })
                 .catch((error) => {
-                    console.error(`Error fetching ${type} search:`, error);
+                    console.error(`Error fetching ${type} locations:`, error);
                     type === "source"
                         ? setSourceLocations([])
                         : setDestinationLocations([]);
@@ -395,23 +402,6 @@ export default function Edit() {
         auth.user?.zip_code,
     ]);
 
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        const validFiles = files.filter((file) => {
-            const isValidType = [
-                "image/jpeg",
-                "image/png",
-                "image/jpg",
-                "image/gif",
-            ].includes(file.type);
-            return isValidType;
-        });
-        const newPhotos = [...data.photos, ...validFiles];
-        setData("photos", newPhotos);
-        const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
-        setPhotoPreviews([...photoPreviews, ...newPreviews]);
-    };
-
     const handleRemovePhoto = (index) => {
         const updatedPhotos = data.photos.filter((_, i) => i !== index);
         const updatedPreviews = photoPreviews.filter((_, i) => i !== index);
@@ -523,8 +513,14 @@ export default function Edit() {
             formData.append(`destination_address[${key}]`, value || "");
         });
 
+        // Hanya kirim foto baru; foto lama dihapus di backend
         data.photos.forEach((photo, index) => {
             formData.append(`photos[${index}]`, photo);
+            console.log(`Appending photo ${index}:`, {
+                name: photo.name,
+                size: photo.size,
+                type: photo.type,
+            });
         });
 
         data.additionals.forEach((add, index) => {
@@ -537,6 +533,7 @@ export default function Edit() {
             onSuccess: () => alert("Permintaan pembelian berhasil diperbarui!"),
             onError: (errors) => {
                 setFormErrors(errors);
+                console.error("Form submission errors:", errors);
                 alert(
                     "Gagal memperbarui permintaan pembelian. Silakan periksa input Anda."
                 );
@@ -591,7 +588,6 @@ export default function Edit() {
                         photoPreviews={photoPreviews}
                         setPhotoPreviews={setPhotoPreviews}
                         formErrors={formErrors}
-                        handleFileChange={handleFileChange}
                         handleRemovePhoto={handleRemovePhoto}
                     />
                     <WeightInput

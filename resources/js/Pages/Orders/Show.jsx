@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Compressor from "compressorjs";
+import heic2any from "heic2any";
 import { usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import { Package } from "lucide-react";
@@ -11,7 +12,7 @@ import UploadPhotoSection from "@/Components/Admin/Orders/UploadPhotoSection";
 import ShippingInfo from "@/Components/Admin/Orders/ShippingInfo";
 import ConfirmReceived from "@/Components/Admin/Orders/ConfirmReceived";
 import CreateShipment from "@/Components/Admin/Orders/CreateShipment";
-import ReviewSection from "@/Components/Admin/Orders/ReviewSection"; // Impor komponen baru
+import ReviewSection from "@/Components/Admin/Orders/ReviewSection";
 
 export default function Show() {
     const { order } = usePage().props;
@@ -19,25 +20,88 @@ export default function Show() {
     const [revisedPhoto, setRevisedPhoto] = useState([]);
     const [trackingNumber, setTrackingNumber] = useState("");
 
-    // Actions for completed photos
-    const handleCompletedPhotoChange = (files) => {
-        const validFiles = Array.from(files).filter((file) =>
-            [
-                "image/jpeg",
-                "image/png",
-                "image/jpg",
-                "image/gif",
-                "image/heic",
-            ].includes(file.type)
-        );
+    // Deteksi browser Chrome
+    const isChrome =
+        /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
 
-        validFiles.forEach((file) => {
-            new Compressor(file, {
+    const convertHeicToJpeg = async (file) => {
+        try {
+            console.log(
+                `Mengonversi ${file.name} dari HEIC/HEIF ke JPEG menggunakan heic2any`
+            );
+            const convertedBlob = await heic2any({
+                blob: file,
+                toType: "image/jpeg",
+                quality: 0.8,
+            });
+            const convertedFile = new File(
+                [convertedBlob],
+                file.name.replace(/\.heic$/i, ".jpg"),
+                {
+                    type: "image/jpeg",
+                    lastModified: new Date().getTime(),
+                }
+            );
+            console.log(
+                `Konversi berhasil: ${convertedFile.name}, ukuran: ${convertedFile.size} bytes`
+            );
+            return convertedFile;
+        } catch (err) {
+            console.error(
+                `Gagal mengonversi ${file.name} dengan heic2any:`,
+                err
+            );
+            throw new Error(`Gagal mengonversi ${file.name} ke JPEG.`);
+        }
+    };
+
+    // Actions for completed photos
+    const handleCompletedPhotoChange = async (files) => {
+        const validTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/jpg",
+            "image/gif",
+            "image/heic",
+            "image/heif",
+        ];
+
+        const validFiles = Array.from(files).filter((file) => {
+            console.log(
+                `File: ${file.name}, MIME type: ${file.type}, Size: ${file.size} bytes`
+            );
+            if (!validTypes.includes(file.type)) {
+                console.warn(
+                    `File ${file.name} ditolak: MIME type ${file.type} tidak valid.`
+                );
+                return false;
+            }
+            return true;
+        });
+
+        for (const file of validFiles) {
+            let processedFile = file;
+
+            if (file.type === "image/heic" || file.type === "image/heif") {
+                try {
+                    processedFile = await convertHeicToJpeg(file);
+                } catch (err) {
+                    alert(
+                        `Gagal memproses file ${file.name}. Jika menggunakan Chrome, konversi file HEIC ke JPEG secara manual menggunakan alat seperti Preview (Mac) atau konverter online.`
+                    );
+                    continue;
+                }
+            }
+
+            new Compressor(processedFile, {
                 quality: 0.8,
                 maxWidth: 1024,
                 maxHeight: 1024,
                 mimeType: "image/jpeg",
                 success(compressedFile) {
+                    console.log(
+                        `File ${processedFile.name} berhasil dikompresi ke JPEG, ukuran: ${compressedFile.size} bytes`
+                    );
                     const newPhoto = {
                         file: compressedFile,
                         preview: URL.createObjectURL(compressedFile),
@@ -45,19 +109,26 @@ export default function Show() {
                     setCompletedPhoto((prev) => [...prev, newPhoto]);
                 },
                 error(err) {
-                    console.error("Compression error:", err);
+                    console.error(
+                        `Gagal mengompresi file ${processedFile.name}:`,
+                        err
+                    );
+                    alert(
+                        `Gagal mengompresi file ${processedFile.name}: ${err.message}. Konversi file ke JPEG secara manual.`
+                    );
                 },
             });
-        });
+        }
 
         if (validFiles.length !== files.length) {
             alert(
-                "Beberapa file tidak valid. Hanya gambar (JPEG, PNG, JPG, GIF, HEIC) yang diperbolehkan."
+                "Beberapa file tidak valid. Hanya gambar (JPEG, PNG, JPG, GIF, HEIC, HEIF) yang diperbolehkan."
             );
         }
     };
 
     const handleRemoveCompletedPhoto = (index) => {
+        console.log(`Menghapus foto pada indeks ${index}`);
         setCompletedPhoto((prev) => prev.filter((_, i) => i !== index));
     };
 
@@ -87,24 +158,52 @@ export default function Show() {
     };
 
     // Actions for revised photos
-    const handleRevisedPhotoChange = (files) => {
-        const validFiles = Array.from(files).filter((file) =>
-            [
-                "image/jpeg",
-                "image/png",
-                "image/jpg",
-                "image/gif",
-                "image/heic",
-            ].includes(file.type)
-        );
+    const handleRevisedPhotoChange = async (files) => {
+        const validTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/jpg",
+            "image/gif",
+            "image/heic",
+            "image/heif",
+        ];
 
-        validFiles.forEach((file) => {
-            new Compressor(file, {
+        const validFiles = Array.from(files).filter((file) => {
+            console.log(
+                `File: ${file.name}, MIME type: ${file.type}, Size: ${file.size} bytes`
+            );
+            if (!validTypes.includes(file.type)) {
+                console.warn(
+                    `File ${file.name} ditolak: MIME type ${file.type} tidak valid.`
+                );
+                return false;
+            }
+            return true;
+        });
+
+        for (const file of validFiles) {
+            let processedFile = file;
+
+            if (file.type === "image/heic" || file.type === "image/heif") {
+                try {
+                    processedFile = await convertHeicToJpeg(file);
+                } catch (err) {
+                    alert(
+                        `Gagal memproses file ${file.name}. Jika menggunakan Chrome, konversi file HEIC ke JPEG secara manual menggunakan alat seperti Preview (Mac) atau konverter online.`
+                    );
+                    continue;
+                }
+            }
+
+            new Compressor(processedFile, {
                 quality: 0.8,
                 maxWidth: 1024,
                 maxHeight: 1024,
                 mimeType: "image/jpeg",
                 success(compressedFile) {
+                    console.log(
+                        `File ${processedFile.name} berhasil dikompresi ke JPEG, ukuran: ${compressedFile.size} bytes`
+                    );
                     const newPhoto = {
                         file: compressedFile,
                         preview: URL.createObjectURL(compressedFile),
@@ -112,19 +211,26 @@ export default function Show() {
                     setRevisedPhoto((prev) => [...prev, newPhoto]);
                 },
                 error(err) {
-                    console.error("Compression error:", err);
+                    console.error(
+                        `Gagal mengompresi file ${processedFile.name}:`,
+                        err
+                    );
+                    alert(
+                        `Gagal mengompresi file ${processedFile.name}: ${err.message}. Konversi file ke JPEG secara manual.`
+                    );
                 },
             });
-        });
+        }
 
         if (validFiles.length !== files.length) {
             alert(
-                "Beberapa file tidak valid. Hanya gambar (JPEG, PNG, JPG, GIF, HEIC) yang diperbolehkan."
+                "Beberapa file tidak valid. Hanya gambar (JPEG, PNG, JPG, GIF, HEIC, HEIF) yang diperbolehkan."
             );
         }
     };
 
     const handleRemoveRevisedPhoto = (index) => {
+        console.log(`Menghapus foto revisi pada indeks ${index}`);
         setRevisedPhoto((prev) => prev.filter((_, i) => i !== index));
     };
 
@@ -145,7 +251,10 @@ export default function Show() {
                     setRevisedPhoto([]);
                 },
                 onError: (errors) =>
-                    alert("Gagal mengunggah foto: " + errors.revisedPhoto),
+                    alert(
+                        "Gagal mengunggah foto: " +
+                            (errors.revised_photo || "Unknown error")
+                    ),
             }
         );
     };
@@ -204,6 +313,7 @@ export default function Show() {
                         onRemovePhoto={handleRemoveCompletedPhoto}
                         onUpload={handleUploadCompletedPhoto}
                         buttonText="Upload Foto Hasil"
+                        isChrome={isChrome}
                     />
                 )}
                 {order.complains &&
@@ -229,6 +339,7 @@ export default function Show() {
                                 order.complains[order.complains.length - 1]
                                     .customer_feedback
                             }
+                            isChrome={isChrome}
                         />
                     )}
                 {order.shipping && (

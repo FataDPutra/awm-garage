@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Paintbrush, Save } from "lucide-react";
@@ -7,6 +7,7 @@ import AdditionalForm from "@/Components/AdditionalForm";
 import AdditionalList from "@/Components/AdditionalList";
 
 export default function CreateService({ additionalTypes: initialTypes, auth }) {
+    const [additionalTypes, setAdditionalTypes] = useState(initialTypes);
     const { data, setData, post, processing, errors } = useForm({
         service_name: "",
         description: "",
@@ -14,20 +15,48 @@ export default function CreateService({ additionalTypes: initialTypes, auth }) {
         additionals: [],
     });
 
+    const handleAddType = (newType) => {
+        setAdditionalTypes([...additionalTypes, newType]);
+        console.log("New type added to CreateService:", newType);
+        console.log("Updated additionalTypes:", additionalTypes);
+    };
+
+    const handleRemoveAdditional = (index) => {
+        const updatedAdditionals = data.additionals.filter(
+            (_, i) => i !== index
+        );
+        setData("additionals", updatedAdditionals);
+        console.log("Additional removed at index:", index);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         const formData = new FormData();
         formData.append("service_name", data.service_name);
         formData.append("description", data.description);
         formData.append("base_price", data.base_price);
+
         data.additionals.forEach((add, index) => {
-            formData.append(
-                `additionals[${index}][additional_type_id]`,
-                add.additional_type_id
-            );
+            if (add.additional_type_id) {
+                formData.append(
+                    `additionals[${index}][additional_type_id]`,
+                    add.additional_type_id
+                );
+            } else if (add.new_type) {
+                formData.append(
+                    `additionals[${index}][new_type]`,
+                    add.new_type
+                );
+            }
             formData.append(`additionals[${index}][name]`, add.name);
-            if (add.image)
+            if (add.image) {
                 formData.append(`additionals[${index}][image]`, add.image);
+                console.log(`Appending image ${index}:`, {
+                    name: add.image.name,
+                    size: add.image.size,
+                    type: add.image.type,
+                });
+            }
             formData.append(
                 `additionals[${index}][additional_price]`,
                 add.additional_price || 0
@@ -38,12 +67,22 @@ export default function CreateService({ additionalTypes: initialTypes, auth }) {
             data: formData,
             forceFormData: true,
             onSuccess: () => {
+                console.log("Service created successfully");
                 data.additionals.forEach((add) => {
                     if (add.preview) URL.revokeObjectURL(add.preview);
                 });
             },
+            onError: (errors) => {
+                console.error("Error creating service:", errors);
+                alert("Gagal membuat layanan. Silakan periksa input Anda.");
+            },
         });
     };
+
+    console.log(
+        "Rendering CreateService with additionalTypes:",
+        additionalTypes
+    );
 
     return (
         <AuthenticatedLayout
@@ -77,13 +116,15 @@ export default function CreateService({ additionalTypes: initialTypes, auth }) {
                                 <AdditionalForm
                                     data={data}
                                     setData={setData}
-                                    additionalTypes={initialTypes}
+                                    additionalTypes={additionalTypes}
+                                    onAddType={handleAddType}
                                 />
                             </div>
                             <div>
                                 <AdditionalList
                                     data={data}
-                                    additionalTypes={initialTypes}
+                                    additionalTypes={additionalTypes}
+                                    onRemove={handleRemoveAdditional}
                                 />
                             </div>
                             <div className="flex flex-col sm:flex-row justify-end gap-4">

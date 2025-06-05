@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Paintbrush, Save } from "lucide-react";
@@ -7,13 +7,16 @@ import AdditionalForm from "@/Components/AdditionalForm";
 import AdditionalList from "@/Components/AdditionalList";
 
 export default function Edit({ service, additionalTypes: initialTypes, auth }) {
+    const [additionalTypes, setAdditionalTypes] = useState(initialTypes);
     const { data, setData, post, processing, errors } = useForm({
         service_name: service.service_name || "",
         description: service.description || "",
         base_price: service.base_price || 0,
         additionals: service.additionals.map((add) => ({
             id: add.id || null,
-            additional_type_id: add.additional_type_id || null,
+            additional_type_id: add.additional_type_id
+                ? parseInt(add.additional_type_id, 10)
+                : null,
             name: add.name || "",
             image_path: add.image_path || null,
             image: null,
@@ -22,64 +25,10 @@ export default function Edit({ service, additionalTypes: initialTypes, auth }) {
         })),
     });
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!data.service_name || !data.base_price) {
-            alert("Service name dan base price harus diisi!");
-            return;
-        }
-
-        const hasFile = data.additionals.some(
-            (add) => add.image instanceof File
-        );
-        if (hasFile) {
-            const formData = new FormData();
-            formData.append("service_name", data.service_name);
-            formData.append("description", data.description || "");
-            formData.append("base_price", data.base_price.toString());
-            formData.append("_method", "PUT");
-            data.additionals.forEach((add, index) => {
-                formData.append(`additionals[${index}][id]`, add.id || "");
-                formData.append(
-                    `additionals[${index}][additional_type_id]`,
-                    add.additional_type_id || ""
-                );
-                formData.append(`additionals[${index}][name]`, add.name || "");
-                if (add.image instanceof File)
-                    formData.append(`additionals[${index}][image]`, add.image);
-                if (add.image_path)
-                    formData.append(
-                        `additionals[${index}][image_path]`,
-                        add.image_path
-                    );
-                formData.append(
-                    `additionals[${index}][additional_price]`,
-                    (add.additional_price || 0).toString()
-                );
-            });
-
-            post(route("services.update", service.id), {
-                data: formData,
-                preserveState: true,
-                preserveScroll: true,
-                onSuccess: () => alert("Service berhasil diperbarui!"),
-                onError: (errors) =>
-                    alert(
-                        "Gagal memperbarui service: " + JSON.stringify(errors)
-                    ),
-            });
-        } else {
-            post(route("services.update", service.id), {
-                data: { ...data, _method: "PUT" },
-                preserveState: true,
-                preserveScroll: true,
-                onSuccess: () => alert("Service berhasil diperbarui!"),
-                onError: (errors) =>
-                    alert(
-                        "Gagal memperbarui service: " + JSON.stringify(errors)
-                    ),
-            });
-        }
+    const handleAddType = (newType) => {
+        setAdditionalTypes([...additionalTypes, newType]);
+        console.log("New type added to Edit:", newType);
+        console.log("Updated additionalTypes:", additionalTypes);
     };
 
     const handleRemoveAdditional = (index) => {
@@ -87,7 +36,68 @@ export default function Edit({ service, additionalTypes: initialTypes, auth }) {
             (_, i) => i !== index
         );
         setData("additionals", updatedAdditionals);
+        console.log("Additional removed at index:", index);
     };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!data.service_name || !data.base_price) {
+            alert("Service name dan base price harus diisi!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("service_name", data.service_name);
+        formData.append("description", data.description || "");
+        formData.append("base_price", data.base_price.toString());
+        formData.append("_method", "PUT");
+
+        data.additionals.forEach((add, index) => {
+            formData.append(`additionals[${index}][id]`, add.id || "");
+            formData.append(
+                `additionals[${index}][additional_type_id]`,
+                add.additional_type_id !== null
+                    ? add.additional_type_id.toString()
+                    : ""
+            );
+            formData.append(`additionals[${index}][name]`, add.name || "");
+            if (add.image instanceof File) {
+                formData.append(`additionals[${index}][image]`, add.image);
+                console.log(`Appending image ${index}:`, {
+                    name: add.image.name,
+                    size: add.image.size,
+                    type: add.image.type,
+                });
+            }
+            if (add.image_path) {
+                formData.append(
+                    `additionals[${index}][image_path]`,
+                    add.image_path
+                );
+            }
+            formData.append(
+                `additionals[${index}][additional_price]`,
+                (add.additional_price || 0).toString()
+            );
+        });
+
+        post(route("services.update", service.id), {
+            data: formData,
+            forceFormData: true, // Selalu gunakan FormData untuk konsistensi
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => alert("Service berhasil diperbarui!"),
+            onError: (errors) =>
+                alert("Gagal memperbarui service: " + JSON.stringify(errors)),
+        });
+    };
+
+    console.log("Rendering Edit with data:", {
+        service_name: data.service_name,
+        base_price: data.base_price,
+        additionals: data.additionals,
+        additionalTypes,
+    });
 
     return (
         <AuthenticatedLayout
@@ -121,13 +131,14 @@ export default function Edit({ service, additionalTypes: initialTypes, auth }) {
                                 <AdditionalForm
                                     data={data}
                                     setData={setData}
-                                    additionalTypes={initialTypes}
+                                    additionalTypes={additionalTypes}
+                                    onAddType={handleAddType}
                                 />
                             </div>
                             <div>
                                 <AdditionalList
                                     data={data}
-                                    additionalTypes={initialTypes}
+                                    additionalTypes={additionalTypes}
                                     onRemove={handleRemoveAdditional}
                                 />
                             </div>

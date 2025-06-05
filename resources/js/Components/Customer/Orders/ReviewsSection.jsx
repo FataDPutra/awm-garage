@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Star, Upload, ZoomIn, X } from "lucide-react";
 import { Inertia } from "@inertiajs/inertia";
 import Compressor from "compressorjs";
+import heic2any from "heic2any";
 
 export default function ReviewsSection({
     order,
@@ -15,10 +16,13 @@ export default function ReviewsSection({
     setReviewMediaPreviews,
     hoverRating,
     setHoverRating,
-    handleReviewMediaChange, // Diterima dari CustomerShow.jsx
 }) {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [selectedMediaType, setSelectedMediaType] = useState("image");
+
+    // Deteksi browser Chrome
+    const isChrome =
+        /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
 
     if (order.status !== "completed") return null;
 
@@ -28,6 +32,7 @@ export default function ReviewsSection({
         "image/jpg",
         "image/gif",
         "image/heic",
+        "image/heif",
         "video/mp4",
         "video/quicktime",
         "video/x-msvideo",
@@ -72,6 +77,7 @@ export default function ReviewsSection({
                         return `${key}: ${value}`;
                     })
                     .join(", ");
+                console.error("Review submission errors:", errors);
                 alert(
                     `Gagal menyimpan review: ${
                         errorMessages || "Unknown error"
@@ -81,15 +87,55 @@ export default function ReviewsSection({
         });
     };
 
-    const handleLocalReviewMediaChange = (e) => {
+    const convertHeicToJpeg = async (file) => {
+        try {
+            console.log(
+                `Mengonversi ${file.name} dari HEIC/HEIF ke JPEG menggunakan heic2any`
+            );
+            const convertedBlob = await heic2any({
+                blob: file,
+                toType: "image/jpeg",
+                quality: 0.8,
+            });
+            const convertedFile = new File(
+                [convertedBlob],
+                file.name.replace(/\.heic$/i, ".jpg"),
+                {
+                    type: "image/jpeg",
+                    lastModified: new Date().getTime(),
+                }
+            );
+            console.log(
+                `Konversi berhasil: ${convertedFile.name}, ukuran: ${convertedFile.size} bytes`
+            );
+            return convertedFile;
+        } catch (err) {
+            console.error(
+                `Gagal mengonversi ${file.name} dengan heic2any:`,
+                err
+            );
+            throw new Error(`Gagal mengonversi ${file.name} ke JPEG.`);
+        }
+    };
+
+    const handleLocalReviewMediaChange = async (e) => {
         const newFiles = Array.from(e.target.files).filter((file) => {
+            console.log(
+                `File: ${file.name}, MIME type: ${file.type}, Size: ${file.size} bytes`
+            );
             if (!allowedFileTypes.includes(file.type)) {
+                console.warn(
+                    `File ${file.name} ditolak: MIME type ${file.type} tidak valid.`
+                );
                 alert(
-                    `File ${file.name} tidak didukung. Gunakan jpg, png, gif, heic, mp4, mov, atau avi.`
+                    `File ${file.name} tidak didukung. Gunakan jpg, png, gif, heic, heif, mp4, mov, atau avi.`
                 );
                 return false;
             }
             if (file.size > maxFileSize) {
+                console.warn(
+                    `File ${file.name} ditolak: Ukuran ${file.size} bytes melebihi ${maxFileSize} bytes.`
+                );
                 alert(`File ${file.name} terlalu besar. Maksimum 10MB.`);
                 return false;
             }
@@ -102,15 +148,34 @@ export default function ReviewsSection({
         }
 
         if (newFiles.length) {
-            newFiles.forEach((file) => {
+            for (const file of newFiles) {
                 const isImage = file.type.startsWith("image/");
+                let processedFile = file;
+
+                if (
+                    isImage &&
+                    (file.type === "image/heic" || file.type === "image/heif")
+                ) {
+                    try {
+                        processedFile = await convertHeicToJpeg(file);
+                    } catch (err) {
+                        alert(
+                            `Gagal memproses file ${file.name}. Jika menggunakan Chrome, konversi file HEIC ke JPEG secara manual menggunakan alat seperti Preview (Mac) atau konverter online.`
+                        );
+                        continue;
+                    }
+                }
+
                 if (isImage) {
-                    new Compressor(file, {
+                    new Compressor(processedFile, {
                         quality: 0.8,
                         maxWidth: 1024,
                         maxHeight: 1024,
                         mimeType: "image/jpeg",
                         success(compressedFile) {
+                            console.log(
+                                `File ${processedFile.name} berhasil dikompresi ke JPEG, ukuran: ${compressedFile.size} bytes`
+                            );
                             setData("review_media", [
                                 ...data.review_media,
                                 compressedFile,
@@ -121,23 +186,32 @@ export default function ReviewsSection({
                             ]);
                         },
                         error(err) {
-                            console.error("Compression error:", err);
-                            alert(`Gagal mengompresi file ${file.name}.`);
+                            console.error(
+                                `Gagal mengompresi file ${processedFile.name}:`,
+                                err
+                            );
+                            alert(
+                                `Gagal mengompresi file ${processedFile.name}: ${err.message}. Konversi file ke JPEG secara manual.`
+                            );
                         },
                     });
                 } else {
                     // File video tidak dikompresi
+                    console.log(
+                        `File video ${file.name} ditambahkan tanpa kompresi.`
+                    );
                     setData("review_media", [...data.review_media, file]);
                     setReviewMediaPreviews((prev) => [
                         ...prev,
                         URL.createObjectURL(file),
                     ]);
                 }
-            });
+            }
         }
     };
 
     const handleRemoveReviewMedia = (index) => {
+        console.log(`Menghapus media pada indeks ${index}`);
         const updatedFiles = data.review_media.filter((_, i) => i !== index);
         const updatedPreviews = reviewMediaPreviews.filter(
             (_, i) => i !== index
@@ -254,11 +328,11 @@ export default function ReviewsSection({
                                                                         mediaIndex +
                                                                         1
                                                                     }`}
-                                                                    className="w-full h-48 object-cover rounded-md border shadow-sm transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg"
+                                                                    className="w-full h-48 object-cover rounded-md border shadow-sm transition-transform duration-300 group-hover:shadow-lg"
                                                                 />
                                                             )}
                                                             {!isVideo && (
-                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-30 rounded-md">
+                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded-md">
                                                                     <ZoomIn
                                                                         size={
                                                                             24
@@ -285,7 +359,7 @@ export default function ReviewsSection({
 
             <button
                 onClick={() => setShowReviewForm(true)}
-                className="mt-4 w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 rounded-lg hover:from-blue-600 hover:to-blue-800 transition-all duration-200 shadow-md"
+                className="mt-4 w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 rounded-lg hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-800 transition-all duration-200 shadow-md"
             >
                 Tambah Review
             </button>
@@ -323,7 +397,7 @@ export default function ReviewsSection({
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
                             <input
                                 type="file"
-                                accept="image/jpeg,image/png,image/jpg,image/gif,image/heic,video/mp4,video/quicktime,video/x-msvideo"
+                                accept="image/jpeg,image/png,image/jpg,image/gif,image/heic,image/heif,video/mp4,video/quicktime,video/x-msvideo"
                                 multiple
                                 onChange={handleLocalReviewMediaChange}
                                 className="hidden"
@@ -343,10 +417,18 @@ export default function ReviewsSection({
                                         klik untuk memilih
                                     </span>
                                     <br />
-                                    (jpg, png, gif, heic, mp4, mov, avi)
+                                    (jpg, png, gif, heic, heif, mp4, mov, avi)
                                 </p>
                             </label>
                         </div>
+                        {isChrome && (
+                            <p className="text-sm text-yellow-600 mt-2">
+                                Catatan: Chrome mungkin tidak mendukung file
+                                HEIC. Jika gagal, konversi file HEIC ke JPEG
+                                menggunakan alat seperti Preview (Mac) atau
+                                konverter online.
+                            </p>
+                        )}
                         {reviewMediaPreviews.length > 0 && (
                             <div className="mt-4">
                                 <p className="text-sm font-medium text-gray-700 mb-1">
@@ -388,11 +470,11 @@ export default function ReviewsSection({
                                                             alt={`Preview ${
                                                                 index + 1
                                                             }`}
-                                                            className="w-full h-48 object-cover rounded-md border shadow-sm transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg"
+                                                            className="w-full h-48 object-cover rounded-md border shadow-sm transition-transform duration-300 group-hover:shadow-lg"
                                                         />
                                                     )}
                                                     {!isVideo && (
-                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-30 rounded-md">
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded-md">
                                                             <ZoomIn
                                                                 size={24}
                                                                 className="text-white"
@@ -427,7 +509,7 @@ export default function ReviewsSection({
                     <div className="flex space-x-3">
                         <button
                             type="submit"
-                            className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 rounded-lg hover:from-blue-600 hover:to-blue-800 transition-all duration-200 shadow-md"
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 rounded-lg hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-800 transition-all duration-200 shadow-md"
                             disabled={processing}
                         >
                             {processing ? "Mengirim..." : "Kirim Review"}
@@ -435,7 +517,7 @@ export default function ReviewsSection({
                         <button
                             type="button"
                             onClick={() => setShowReviewForm(false)}
-                            className="flex-1 bg-gradient-to-r from-gray-500 to-gray-700 text-white py-3 rounded-lg hover:from-gray-600 hover:to-gray-800 transition-all duration-200 shadow-md"
+                            className="flex-1 bg-gradient-to-r from-gray-500 to-gray-700 text-white py-3 rounded-lg hover:bg-gradient-to-r hover:from-gray-600 hover:to-gray-800 transition-all duration-200 shadow-md"
                         >
                             Batal
                         </button>

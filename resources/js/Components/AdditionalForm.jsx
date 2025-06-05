@@ -2,35 +2,141 @@ import React, { useState } from "react";
 import axios from "axios";
 import ImageUpload from "./ImageUpload";
 import { PlusCircle, XCircle, Save } from "lucide-react";
+import heic2any from "heic2any";
+import Compressor from "compressorjs";
 
 export default function AdditionalForm({
     data,
     setData,
-    additionalTypes: initialTypes,
+    additionalTypes,
+    onAddType,
 }) {
     const [showAdditionalForm, setShowAdditionalForm] = useState(false);
     const [newTypeInput, setNewTypeInput] = useState(false);
-    const [additionalTypes, setAdditionalTypes] = useState(initialTypes);
     const [additional, setAdditional] = useState({
         additional_type_id: "",
+        new_type: "",
         name: "",
         image: null,
         additional_price: "",
         preview: null,
     });
 
-    const handleAddAdditional = () => {
-        if (additional.additional_type_id && additional.name) {
-            setData("additionals", [
-                ...data.additionals,
+    const isHeicFile = (file) => {
+        const isHeic = ["image/heic", "image/heif"].includes(file.type);
+        if (isHeic && !navigator.userAgent.includes("Chrome")) {
+            alert(
+                "File HEIC/HEIF hanya didukung di Chrome. Silakan konversi ke JPEG/PNG di browser lain."
+            );
+            return false;
+        }
+        return isHeic;
+    };
+
+    const convertHeicToJpeg = async (file) => {
+        console.log(`Mengkonversi ${file.name} ke JPEG`);
+        try {
+            const convertedBlob = await heic2any({
+                blob: file,
+                toType: "image/jpeg",
+                quality: 0.8,
+            });
+            return new File(
+                [convertedBlob],
+                file.name.replace(/\.heic$/i, ".jpg"),
                 {
-                    ...additional,
-                    image: additional.image,
-                    preview: additional.preview,
+                    type: "image/jpeg",
+                }
+            );
+        } catch (error) {
+            console.error("Error converting HEIC to JPEG:", error);
+            alert(
+                "Gagal mengkonversi file HEIC. Silakan coba lagi atau gunakan format lain."
+            );
+            return null;
+        }
+    };
+
+    const compressImage = (file) => {
+        return new Promise((resolve) => {
+            new Compressor(file, {
+                quality: 0.8,
+                maxWidth: 1920,
+                maxHeight: 1920,
+                mimeType: "image/jpeg",
+                success(result) {
+                    console.log(`File ${result.name} berhasil dikompresi`);
+                    resolve(result);
                 },
-            ]);
+                error(error) {
+                    console.error("Error compressing image:", error);
+                    resolve(file);
+                },
+            });
+        });
+    };
+
+    const handleImageChange = async (file) => {
+        if (!file) return;
+
+        const validTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/jpg",
+            "image/gif",
+            "image/heic",
+            "image/heif",
+        ];
+        if (!validTypes.includes(file.type)) {
+            alert(
+                "Format gambar tidak didukung. Gunakan JPEG, PNG, JPG, GIF, HEIC, atau HEIF."
+            );
+            return;
+        }
+
+        let processedFile = file;
+        if (isHeicFile(file)) {
+            processedFile = await convertHeicToJpeg(file);
+            if (!processedFile) return;
+        }
+
+        processedFile = await compressImage(processedFile);
+        const previewUrl = URL.createObjectURL(processedFile);
+        setAdditional({
+            ...additional,
+            image: processedFile,
+            preview: previewUrl,
+        });
+        console.log("Image selected:", {
+            name: processedFile.name,
+            size: processedFile.size,
+            type: processedFile.type,
+        });
+    };
+
+    const handleImageRemove = () => {
+        if (additional.preview) URL.revokeObjectURL(additional.preview);
+        setAdditional({ ...additional, image: null, preview: null });
+        console.log("Image removed");
+    };
+
+    const handleAddAdditional = () => {
+        if (
+            (additional.additional_type_id || additional.new_type) &&
+            additional.name
+        ) {
+            const newAdditional = {
+                ...additional,
+                additional_type_id: additional.additional_type_id
+                    ? parseInt(additional.additional_type_id, 10)
+                    : "",
+                image: additional.image,
+                preview: additional.preview,
+            };
+            setData("additionals", [...data.additionals, newAdditional]);
             setAdditional({
                 additional_type_id: "",
+                new_type: "",
                 name: "",
                 image: null,
                 additional_price: "",
@@ -38,32 +144,32 @@ export default function AdditionalForm({
             });
             setNewTypeInput(false);
             setShowAdditionalForm(false);
+            console.log("Additional added:", {
+                additional_type_id: newAdditional.additional_type_id,
+                additional_type_id_type:
+                    typeof newAdditional.additional_type_id,
+                new_type: newAdditional.new_type,
+                name: newAdditional.name,
+                additional_price: newAdditional.additional_price,
+            });
         } else {
             alert(
-                "Please fill in the required fields (Type and Name) for the additional."
+                "Harap isi kolom Tipe (atau Tipe Baru) dan Nama untuk tambahan."
             );
         }
     };
 
-    const handleImageChange = (file) => {
-        if (file) {
-            const previewUrl = URL.createObjectURL(file);
-            setAdditional({ ...additional, image: file, preview: previewUrl });
-        }
-    };
-
-    const handleImageRemove = () => {
-        if (additional.preview) URL.revokeObjectURL(additional.preview);
-        setAdditional({ ...additional, image: null, preview: null });
-    };
-
     const handleSaveNewType = async (newType) => {
         if (!newType) {
-            alert("Please enter a new type name.");
+            alert("Harap masukkan nama tipe baru.");
             return;
         }
-        if (additionalTypes.some((t) => t.name === newType)) {
-            alert("This type already exists.");
+        if (
+            additionalTypes.some(
+                (t) => t.name.toLowerCase() === newType.toLowerCase()
+            )
+        ) {
+            alert("Tipe ini sudah ada.");
             return;
         }
 
@@ -72,12 +178,18 @@ export default function AdditionalForm({
                 name: newType,
             });
             const savedType = response.data;
-            setAdditionalTypes([...additionalTypes, savedType]);
-            setAdditional({ ...additional, additional_type_id: savedType.id });
+            onAddType(savedType); // Kirim tipe baru ke CreateService
+            setAdditional({
+                ...additional,
+                additional_type_id: savedType.id,
+                new_type: "",
+            });
             setNewTypeInput(false);
+            console.log("New type saved:", savedType);
         } catch (error) {
+            console.error("Error saving new type:", error);
             alert(
-                "Failed to save new type: " +
+                "Gagal menyimpan tipe baru: " +
                     (error.response?.data?.message || error.message)
             );
         }
@@ -115,6 +227,7 @@ export default function AdditionalForm({
                                                 ...additional,
                                                 additional_type_id:
                                                     e.target.value,
+                                                new_type: "",
                                             })
                                         }
                                         className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -148,6 +261,7 @@ export default function AdditionalForm({
                                             setAdditional({
                                                 ...additional,
                                                 new_type: e.target.value,
+                                                additional_type_id: "",
                                             })
                                         }
                                         className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -221,7 +335,11 @@ export default function AdditionalForm({
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setShowAdditionalForm(false)}
+                                onClick={() => {
+                                    setShowAdditionalForm(false);
+                                    setNewTypeInput(false);
+                                    handleImageRemove();
+                                }}
                                 className="bg-gradient-to-r from-red-500 to-red-700 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-800 transition-all duration-200 shadow-md flex items-center justify-center gap-2 w-full sm:w-auto"
                             >
                                 <XCircle size={18} /> Batal
