@@ -105,7 +105,7 @@ class OrderController extends Controller
             'offerPrice.purchaseRequest.service.additionals',
             'offerPrice.purchaseRequest.user',
             'offerPrice.payments',
-            'complaints',
+            'complains',
             'shipping',
             'reviews'
         ])
@@ -204,10 +204,10 @@ class OrderController extends Controller
 
         $order = Order::where('order_id', $order_id)->firstOrFail();
 
-        $latestComplain = $order->complaints()->latest()->first();
+        $latestComplain = $order->complains()->latest()->first();
 
         if (!$latestComplain) {
-            $latestComplain = $order->complaints()->create([
+            $latestComplain = $order->complains()->create([
                 'customer_feedback' => null,
                 'revised_photo_path' => [],
             ]);
@@ -260,7 +260,7 @@ class OrderController extends Controller
         $order = Order::with([
             'offerPrice.purchaseRequest.service',
             'offerPrice.purchaseRequest.user',
-            'complaints',
+            'complains',
             'shipping',
             'reviews'
         ])
@@ -333,7 +333,7 @@ class OrderController extends Controller
 
         $order = Order::where('order_id', $order_id)->with('offerPrice.payments')->firstOrFail();
 
-        $order->complaints()->create([
+        $order->complains()->create([
             'customer_feedback' => $request->customer_feedback,
         ]);
 
