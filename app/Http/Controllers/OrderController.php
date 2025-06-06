@@ -353,7 +353,7 @@ class OrderController extends Controller
             $this->sendAdminStatusNotification($order, "Pelanggan {$order->offerPrice->purchaseRequest->user_id} telah menyetujui pesanan (ID: {$order->order_id}).");
         } else {
             $order->update([
-                'status' => 'customer_complaint',
+                'status' => 'customer_complain',
                 'customer_confirmation' => 'rejected'
             ]);
 
