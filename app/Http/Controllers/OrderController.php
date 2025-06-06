@@ -27,7 +27,7 @@ class OrderController extends Controller
         $userkey = env('ZENZIVA_USERKEY');
         $passkey = env('ZENZIVA_PASSKEY');
         $message = "Halo {$user->full_name}, pesanan Anda (ID: {$order->order_id}) telah diperbarui: {$statusMessage} Silahkan pantau pesanan anda secara berkala melalui website https://awmgarage.store";
-        $url = 'https://console.zenziva.net/wareguler/api/sendMessage/';
+        $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
 
         $response = Http::asForm()->post($url, [
             'userkey' => $userkey,
@@ -63,7 +63,7 @@ class OrderController extends Controller
         $userkey = env('ZENZIVA_USERKEY');
         $passkey = env('ZENZIVA_PASSKEY');
         $message = "Halo Admin, pesanan (ID: {$order->order_id}) dari {$order->offerPrice->purchaseRequest->user->full_name} telah diperbarui: {$statusMessage} Silahkan periksa di https://awmgarage.store";
-        $url = 'https://console.zenziva.net/wareguler/api/sendMessage/';
+        $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
 
         $response = Http::asForm()->post($url, [
             'userkey' => $userkey,
