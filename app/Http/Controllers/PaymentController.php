@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Models\OfferPrice;
 use App\Models\Order;
+use App\Models\User; // Tambahkan untuk mengakses model User
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -57,6 +58,42 @@ class PaymentController extends Controller
             Log::info('Notifikasi status berhasil dikirim', [
                 'user_id' => $user->id,
                 'phone' => $user->phone,
+            ]);
+        }
+    }
+
+    private function sendAdminStatusNotification($order, $statusMessage)
+    {
+        $admin = User::where('role', 'admin')->first();
+        if (!$admin || !$admin->phone_verified_at) {
+            Log::info('Notifikasi ke Admin tidak dikirim karena nomor belum diverifikasi atau Admin tidak ditemukan', ['admin_id' => $admin?->id]);
+            return;
+        }
+
+        $userkey = env('ZENZIVA_USERKEY');
+        $passkey = env('ZENZIVA_PASSKEY');
+        $message = "Halo Admin, pesanan (ID: {$order->order_id}) dari {$order->offerPrice->purchaseRequest->user->full_name} telah diperbarui: {$statusMessage} Silahkan periksa di https://awmgarage.store";
+        $url = 'https://console.zenziva.net/wareguler/api/sendWA/';
+
+        $response = Http::asForm()->post($url, [
+            'userkey' => $userkey,
+            'passkey' => $passkey,
+            'to' => $admin->phone,
+            'message' => $message,
+        ]);
+
+        $result = $response->json();
+
+        if ($result && $result['status'] != '1') {
+            Log::warning('Gagal mengirim notifikasi ke Admin', [
+                'admin_id' => $admin->id,
+                'phone' => $admin->phone,
+                'response' => $result,
+            ]);
+        } else {
+            Log::info('Notifikasi ke Admin berhasil dikirim', [
+                'admin_id' => $admin->id,
+                'phone' => $admin->phone,
             ]);
         }
     }
@@ -122,7 +159,7 @@ class PaymentController extends Controller
                 'midtransClientKey' => env('MIDTRANS_CLIENT_KEY'),
                 'snapToken' => $snapToken,
                 'order' => $order ? ['id' => $order->id, 'status' => $order->status] : null,
-                'preferredActiveMenu' => '/orders', // After initiating DP payment, focus on orders
+                'preferredActiveMenu' => '/orders',
             ]);
         } catch (\Exception $e) {
             Log::error('Midtrans Error: ' . $e->getMessage());
@@ -200,7 +237,7 @@ class PaymentController extends Controller
                 'midtransClientKey' => env('MIDTRANS_CLIENT_KEY'),
                 'snapToken' => $snapToken,
                 'order' => $order ? ['id' => $order->id, 'status' => $order->status] : null,
-                'preferredActiveMenu' => '/orders', // After initiating full payment, focus on orders
+                'preferredActiveMenu' => '/orders',
             ]);
         } catch (\Exception $e) {
             Log::error('Midtrans Error: ' . $e->getMessage());
@@ -219,7 +256,7 @@ class PaymentController extends Controller
         // Log semua data yang diterima dari Midtrans untuk debugging
         Log::info('Callback received from Midtrans', $request->all());
 
-        // Tangani notifikasi tes dari Midtrans (order_id mengandung "payment_notif_test")
+        // Tangani notifikasi tes dari Midtrans
         if (strpos($request->order_id, 'payment_notif_test') !== false) {
             Log::info('Test notification received from Midtrans', ['order_id' => $request->order_id]);
             return response()->json(['status' => 'success'], 200);
@@ -228,7 +265,7 @@ class PaymentController extends Controller
         // Ambil server key dari environment variable
         $serverKey = env('MIDTRANS_SERVER_KEY');
 
-        // Format gross_amount agar sesuai dengan yang dikirim Midtrans (contoh: "15000.00")
+        // Format gross_amount agar sesuai dengan yang dikirim Midtrans
         $grossAmount = number_format((float)$request->gross_amount, 2, '.', '');
 
         // Hitung signature_key untuk validasi
@@ -246,7 +283,7 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Invalid signature'], 403);
         }
 
-        // Cari data pembayaran berdasarkan transaction_id (sama dengan order_id dari Midtrans)
+        // Cari data pembayaran berdasarkan transaction_id
         $payment = Payment::where('transaction_id', $request->order_id)->first();
         if (!$payment) {
             Log::error('Payment not found for transaction_id', ['transaction_id' => $request->order_id]);
@@ -268,7 +305,7 @@ class PaymentController extends Controller
                 'payment_type' => $payment->payment_type,
             ]);
 
-            // Update status pembayaran berdasarkan tipe pembayaran (DP atau penuh)
+            // Update status pembayaran berdasarkan tipe pembayaran
             $payment->update([
                 'payment_status' => $payment->payment_type === 'dp' ? 'paid' : 'success',
                 'payment_time' => now(),
@@ -283,21 +320,34 @@ class PaymentController extends Controller
             $orderExistedBefore = $order !== null;
 
             if ($order) {
-                // Jika order sudah ada (artinya DP sudah dibayar sebelumnya)
+                // Jika order sudah ada
                 if ($payment->payment_type === 'dp') {
-                    // Untuk pembayaran DP, status tetap waiting_for_customer_shipment
+                    // Untuk pembayaran DP
                     $order->update(['status' => 'waiting_for_customer_shipment']);
                 } elseif ($payment->payment_type === 'full') {
-                    // Untuk pembayaran penuh, ubah status ke waiting_for_shipment jika order sudah ada (DP sudah dibayar)
+                    // Untuk pembayaran penuh
                     $order->update(['status' => 'waiting_for_shipment']);
+                    // Kirim notifikasi ke admin untuk pembayaran penuh
+                    $this->sendAdminStatusNotification(
+                        $order,
+                        "Pelanggan {$order->offerPrice->purchaseRequest->user->full_name} telah melakukan pembayaran penuh untuk pesanan (ID: {$order->order_id}). Silahkan siapkan pengiriman."
+                    );
                 }
             } else {
-                // Jika order belum ada (langsung bayar full tanpa DP atau ini adalah pembayaran DP pertama)
+                // Jika order belum ada
                 $order = Order::create([
                     'order_id' => 'INV-' . now()->format('Ymd') . '-' . str_pad($offerPrice->id, 4, '0', STR_PAD_LEFT),
                     'offerprice_id' => $offerPrice->id,
                     'status' => 'waiting_for_customer_shipment',
                 ]);
+                // Jika pembayaran penuh dilakukan langsung tanpa DP
+                if ($payment->payment_type === 'full') {
+                    $order->update(['status' => 'waiting_for_customer_shipment']);
+                    $this->sendAdminStatusNotification(
+                        $order,
+                        "Pelanggan {$order->offerPrice->purchaseRequest->user->full_name} telah melakukan pembayaran penuh untuk pesanan baru (ID: {$order->order_id}). Silahkan tunggu pengiriman barang dari pelanggan."
+                    );
+                }
             }
 
             // Log status order untuk debugging
