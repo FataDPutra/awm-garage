@@ -178,8 +178,8 @@ export default function CreateDP({
             <Head title="Pembayaran DP">
                 <script
                     type="text/javascript"
-                    // src="https://app.midtrans.com/snap/snap.js"
-                    src="https://app.sandbox.midtrans.com/snap/snap.js"
+                    src="https://app.midtrans.com/snap/snap.js"
+                    // src="https://app.sandbox.midtrans.com/snap/snap.js"
                     data-client-key={midtransClientKey}
                 ></script>
             </Head>
